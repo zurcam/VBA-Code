@@ -1,0 +1,2385 @@
+Function years_physician_report()         ' RUN ME
+
+    result = new_worksheet_creator
+    result = column_width_monthly()
+    result = poster()
+    
+End Function
+
+Function poster()
+   
+    Dim class_status As Variant
+    Dim names() As String
+    Dim name_counter As Integer
+    Dim years As Variant
+    Dim months As Variant
+    Dim insr_group As Variant
+    Dim name_iter As Integer
+    Dim year_iter As Integer
+    Dim insr_iter As Integer
+    
+    Dim y1IP As Integer
+    Dim y2IP As Integer
+    Dim y1OP As Integer
+    Dim y2OP As Integer
+    
+    Dim mio_range As Range
+    
+    Dim start As Range
+    Dim sheet_counter As Integer
+    
+    Dim cases_int As Integer
+    Dim ipop_int As Integer
+    Dim days_int As Integer
+    Dim gmlos_int As Integer
+    Dim charges_int As Integer
+    Dim projpay_int As Integer
+    Dim dircos_int As Integer
+    Dim conmar_int As Integer
+    Dim indcos_int As Integer
+    Dim netinc_int As Integer
+    Dim insgro_int As Integer
+    Dim month_int As Integer
+    Dim attphy_int As Long
+
+    Dim inpatient_bool As Boolean
+    Dim phy_bool As Boolean
+    
+    inpatient_bool = False
+    
+    Set mio_range = ActiveWorkbook.Worksheets(1).Range("c3")
+    
+    y1IP = 11
+    y2IP = 0
+    y1OP = 11
+    y2OP = 0
+    
+    year_iter = 0
+    insr_iter = 0
+    
+    result = find_data_rows(cases_int, ipop_int, days_int, gmlos_int, charges_int, projpay_int, dircos_int, conmar_int, indcos_int, netinc_int, insgro_int, month_int, attphy_int, phy_bool)
+    
+    result = raw_data_finder(start, sheet_counter)
+        
+    result = class_status_houser(class_status)
+    result = name_wheel(names(), name_counter, attphy_int)
+    result = date_wheel(years, months, month_int)
+    
+    result = insr_group_houser(insr_group)
+    
+    
+    result = placement_finder(class_status, years, months, names(), y1IP, y2IP, y1OP, y2OP, start, sheet_counter, phy_bool, ipop_int, month_int, attphy_int, inpatient_bool)
+    
+    If inpatient_bool = False Then
+        
+        result = header_outpatient_general()
+        MsgBox "No inpatient records found for this doctor."
+        
+        GoTo pass_inpatient
+        
+    End If
+    result = header_inpatient_general()
+    result = y1IP_populator(y1IP, names(), months, years, class_status, insr_group, mio_range, start, sheet_counter, phy_bool, ipop_int, month_int, attphy_int, insgro_int, days_int, gmlos_int, charges_int, projpay_int, dircos_int, conmar_int, indcos_int, netinc_int)
+pass_inpatient:
+    result = y2IP_populator(y2IP, names(), months, years, class_status, insr_group, mio_range, start, sheet_counter, phy_bool, ipop_int, month_int, attphy_int, insgro_int, days_int, gmlos_int, charges_int, projpay_int, dircos_int, conmar_int, indcos_int, netinc_int)
+    result = y1OP_populator(y1OP, names(), months, years, class_status, insr_group, mio_range, start, sheet_counter, phy_bool, ipop_int, month_int, attphy_int, insgro_int, charges_int, projpay_int, dircos_int, conmar_int, indcos_int, netinc_int)
+    result = y2OP_populator(y2OP, names(), months, years, class_status, insr_group, mio_range, start, sheet_counter, phy_bool, ipop_int, month_int, attphy_int, insgro_int, charges_int, projpay_int, dircos_int, conmar_int, indcos_int, netinc_int)
+    
+    result = title_setter_monthly(names(), y1IP, y2OP, years, months, inpatient_bool)
+    
+End Function
+
+Function placement_finder(class_status As Variant, years As Variant, months As Variant, names() As String, y1IP As Integer, y2IP As Integer, y1OP As Integer, y2OP As Integer, start As Range, sheet_counter, phy_bool As Boolean, ipop_int As Integer, month_int As Integer, attphy_int As Long, inpatient_bool As Boolean)
+
+    'Dim start As Range
+    Dim counter As Long
+    Dim end_point As Integer
+    Dim phy_string As String
+    
+    
+    'Set start = ActiveWorkbook.Worksheets(2).Range("a2")
+    
+    counter = -1
+    
+    end_point = ActiveWorkbook.Worksheets(sheet_counter).UsedRange.Rows.Count - 2
+    
+
+    Do While counter < end_point
+    
+        counter = counter + 1
+        
+        If start.Offset(counter, 0).Value = vbNullString Then
+        
+            Exit Function
+            
+        End If
+        
+        If phy_bool = True Then
+        
+            phy_string = LCase(Mid(Left(start.Offset(counter, attphy_int).Value, InStr(start.Offset(counter, attphy_int).Value, ",") - 1), 13))
+            
+        End If
+        
+        If phy_bool = False Then
+        
+            phy_string = LCase(Left(start.Offset(counter, attphy_int).Value, InStr(start.Offset(counter, attphy_int).Value, ",") - 1))
+            
+        End If
+        
+        'MsgBox phy_bool
+        
+        For y = 0 To UBound(names())
+        
+            If phy_string = names(y) Then
+        
+                If LCase(Left(start.Offset(counter, ipop_int).Value, 1)) = LCase(class_status(0)) Then
+                
+                    If CInt(Right(start.Offset(counter, month_int), 4)) = years(0) Then
+                
+                        For i = 0 To UBound(months)
+                        
+
+                        
+                            If LCase(Mid(start.Offset(counter, month_int).Value, 10, 3)) = LCase(Left(months(i), 3)) Then
+                                
+                                If i < y1IP And i <> vbNullString Then
+                                    
+                                    y1IP = i
+                                    
+                                    inpatient_bool = True
+                                    
+                                End If
+                                
+                                'Exit Function
+                                
+                            End If
+                            
+                        Next i
+                        
+                        'Exit Function
+                    
+                    End If
+                    
+                End If
+                
+            End If
+            
+        Next y
+        
+        For y = 0 To UBound(names())
+        
+            If phy_string = names(y) Then
+        
+                If LCase(Left(start.Offset(counter, ipop_int).Value, 1)) = LCase(class_status(0)) Then
+                
+                    If CInt(Right(start.Offset(counter, month_int), 4)) = years(1) Then
+                        
+                        For i = 0 To UBound(months)
+                        
+                            If LCase(Mid(start.Offset(counter, month_int).Value, 10, 3)) = LCase(Left(months(i), 3)) Then
+                             
+                                If i > y2IP And i <> vbNullString Then
+                                    
+                                    y2IP = i
+                                    
+                                    inpatient_bool = True
+                                    
+                                End If
+                                
+                                'Exit Function
+                                
+                            End If
+                            
+                        Next i
+                        
+                        'Exit Function
+                    
+                    End If
+                    
+                End If
+                
+            End If
+        
+        Next y
+        
+        For y = 0 To UBound(names())
+        
+            If phy_string = names(y) Then
+        
+                If LCase(Left(start.Offset(counter, ipop_int).Value, 1)) = LCase(class_status(1)) Then
+                
+                    If CInt(Right(start.Offset(counter, month_int), 4)) = years(0) Then
+                        
+                        For i = 0 To UBound(months)
+                        
+                            If LCase(Mid(start.Offset(counter, month_int).Value, 10, 3)) = LCase(Left(months(i), 3)) Then
+                             
+                                If i < y1OP And i <> vbNullString Then
+                                    
+                                    y1OP = i
+                                    
+                                End If
+                                
+                                'Exit Function
+                                
+                            End If
+                            
+                        Next i
+                        
+                        'Exit Function
+                    
+                    End If
+                    
+                End If
+                
+            End If
+            
+        Next y
+        
+        For y = 0 To UBound(names())
+        
+            If phy_string = names(y) Then
+        
+                If LCase(Left(start.Offset(counter, ipop_int).Value, 1)) = LCase(class_status(1)) Then
+                
+                    If CInt(Right(start.Offset(counter, month_int), 4)) = years(1) Then
+                        
+                        For i = 0 To UBound(months)
+                        
+                            If LCase(Mid(start.Offset(counter, month_int).Value, 10, 3)) = LCase(Left(months(i), 3)) Then
+                             
+                                If i > y2OP And i <> vbNullString Then
+                                    
+                                    y2OP = i
+                                    
+                                End If
+                                
+                                'Exit Function
+                                
+                            End If
+                            
+                        Next i
+                        
+                        'Exit Function
+                    
+                    End If
+                    
+                End If
+                
+            End If
+        
+        Next y
+        
+    Loop
+    
+    
+    
+    'MsgBox y1IP
+    'MsgBox y2IP
+    
+    'MsgBox y1OP
+    'MsgBox y2OP
+    
+End Function
+Function y1IP_populator(y1IP As Integer, names() As String, months As Variant, years As Variant, class_status As Variant, insr_group As Variant, mio_range As Range, start As Range, sheet_counter, phy_bool As Boolean, ipop_int As Integer, month_int As Integer, attphy_int As Long, insgro_int As Integer, days_int As Integer, gmlos_int As Integer, charges_int As Integer, projpay_int As Integer, dircos_int As Integer, conmar_int As Integer, indcos_int As Integer, netinc_int As Integer)
+
+On Error GoTo err_command_test
+    'Dim start As Range
+    Dim counter As Long
+    Dim end_point As Long
+    
+    Dim repeat_counter As Long
+    
+    'Dim mio_range As Range
+    Dim mio_counter As Long
+    Dim mio_bool As Boolean
+    Dim month_counter As Integer
+
+    Dim skipper_counter As Variant
+    Dim positive_hit As Integer
+    
+    Dim insr_group_iter As Long
+    
+    Dim month_exist_bool As Boolean
+    
+    Dim phy_string As String
+    
+    'Set start = ActiveWorkbook.Worksheets(2).Range("a2")
+    
+    'counter = -1
+    
+    
+    'mio_bool = False
+    
+    'Set mio_range = ActiveWorkbook.Worksheets(1).Range("c3")
+    
+    end_point = ActiveWorkbook.Worksheets(sheet_counter).UsedRange.Rows.Count - 1
+    
+    
+    
+    For i = (y1IP) To 11
+        
+        month_counter = i
+        skipper_counter = 0
+        positive_hit = 0
+        mio_counter = -1
+        month_exist_bool = False
+        
+        For j = 0 To UBound(insr_group)
+        
+            'Set start = ActiveWorkbook.Worksheets(2).Range("a2")
+            insr_group_iter = j
+            counter = -1
+            mio_bool = False
+            repeat_counter = 0
+            skipper_bool = False
+            mio_counter = mio_counter + 1
+                
+             'If i > y1IP And j <> 0 Then
+                                        
+                'Set mio_range = mio_range.Offset(1, 0)
+                                                                        
+             'End If
+            
+            Do While counter <= end_point
+            
+                counter = counter + 1
+                
+                If start.Offset(counter, 0).Value = vbNullString Then
+                
+                    Exit Do
+                    
+                End If
+                
+                If phy_bool = True Then
+        
+                    phy_string = LCase(Mid(Left(start.Offset(counter, attphy_int).Value, InStr(start.Offset(counter, attphy_int).Value, ",") - 1), 13))
+            
+                End If
+        
+                If phy_bool = False Then
+        
+                    phy_string = LCase(Left(start.Offset(counter, attphy_int).Value, InStr(start.Offset(counter, attphy_int).Value, ",") - 1))
+            
+                End If
+                
+                For n = 0 To UBound(names())
+                
+                If phy_string = names(n) Then
+            
+                    If LCase(Left(start.Offset(counter, ipop_int).Value, 1)) = LCase(class_status(0)) Then
+                    
+                        If CInt(Right(start.Offset(counter, month_int), 4)) = years(0) Then
+                    
+                            If LCase(Mid(start.Offset(counter, month_int).Value, 10, 3)) = LCase(Left(months(i), 3)) Then
+                                
+                                month_exist_bool = True
+                    
+                                    If LCase(start.Offset(counter, insgro_int).Value) = LCase(insr_group(j)) Then
+                                     
+                                        repeat_counter = repeat_counter + 1
+                                        
+                                        If mio_bool = False Then
+                                            
+                                            result = mio_range_finder(mio_range, mio_counter, mio_bool, insr_group, skipper_counter, months, month_counter, insr_group_iter, repeat_counter)
+                                            
+                                        End If
+                                        
+                                        If repeat_counter <> 0 And start.Offset(counter, insgro_int).Value <> vbNullString Then
+                                         
+                                            result = paster_general(names(), months, years, class_status, mio_range, start, counter, repeat_counter, insgro_int, days_int, gmlos_int, charges_int, projpay_int, dircos_int, conmar_int, indcos_int, netinc_int)
+                                        
+                                        End If
+                                    
+                                    End If
+                                        
+                                End If
+                            
+                            End If
+                            
+                        End If
+                        
+                    End If
+            
+                Next n
+                
+            Loop
+        
+            If repeat_counter = 0 And j > 0 Then
+            
+                skipper_counter = skipper_counter + 1
+                
+            End If
+     
+            
+            If repeat_counter <> 0 Then
+        
+            result = paster_specific(names(), months, years, class_status, mio_range, start, counter, repeat_counter)
+            positive_hit = positive_hit + 1
+            
+            End If
+            
+            If j = UBound(months) Then
+            
+                GoTo advance
+                
+            End If
+        
+            If repeat_counter = 0 And j = UBound(months) Then
+            
+                MsgBox "11" & "    " & i
+            
+                GoTo skip
+                
+            End If
+            
+            If month_exist_bool = False Then
+            
+                GoTo skip
+                
+            End If
+            
+        Next j
+    
+advance:
+    result = positive_hit_calculator(mio_range, positive_hit)
+    result = new_title_formatter(mio_range)
+    result = header_inpatient_specific(mio_range)
+skip:
+    Next i
+    
+Exit Function
+err_command_test:
+
+    MsgBox "This is the function " & err.Description
+    
+End Function
+Function y2IP_populator(y2IP As Integer, names() As String, months As Variant, years As Variant, class_status As Variant, insr_group As Variant, mio_range As Range, start As Range, sheet_counter, phy_bool As Boolean, ipop_int As Integer, month_int As Integer, attphy_int As Long, insgro_int As Integer, days_int As Integer, gmlos_int As Integer, charges_int As Integer, projpay_int As Integer, dircos_int As Integer, conmar_int As Integer, indcos_int As Integer, netinc_int As Integer)
+
+On Error GoTo err_command_test
+    'Dim start As Range
+    Dim counter As Long
+    Dim end_point As Long
+    
+    Dim repeat_counter As Long
+    
+    Dim mio_counter As Long
+    Dim mio_bool As Boolean
+    Dim month_counter As Integer
+
+    Dim skipper_counter As Variant
+    Dim positive_hit As Integer
+    
+    Dim insr_group_iter As Long
+    
+    Dim month_exist_bool As Boolean
+    
+    Dim phy_string As String
+    
+    end_point = ActiveWorkbook.Worksheets(sheet_counter).UsedRange.Rows.Count - 1
+    
+  For i = 0 To y2IP
+        
+        month_counter = i
+        skipper_counter = 0
+        positive_hit = 0
+        mio_counter = -1
+        month_exist_bool = False
+        
+        For j = 0 To UBound(insr_group)
+        
+            'Set start = ActiveWorkbook.Worksheets(2).Range("a2")
+            insr_group_iter = j
+            counter = -1
+            mio_bool = False
+            repeat_counter = 0
+            skipper_bool = False
+            mio_counter = mio_counter + 1
+                
+             'If i > y1IP And j <> 0 Then
+                                        
+                'Set mio_range = mio_range.Offset(1, 0)
+                                                                        
+             'End If
+            
+            Do While counter <= end_point
+            
+                counter = counter + 1
+                
+                If start.Offset(counter, 0).Value = vbNullString Then
+                
+                    Exit Do
+                    
+                End If
+                
+                If phy_bool = True Then
+        
+                    phy_string = LCase(Mid(Left(start.Offset(counter, attphy_int).Value, InStr(start.Offset(counter, attphy_int).Value, ",") - 1), 13))
+            
+                End If
+        
+                If phy_bool = False Then
+        
+                    phy_string = LCase(Left(start.Offset(counter, attphy_int).Value, InStr(start.Offset(counter, attphy_int).Value, ",") - 1))
+            
+                End If
+                
+                For n = 0 To UBound(names())
+                
+                If phy_string = names(n) Then
+            
+                    If LCase(Left(start.Offset(counter, ipop_int).Value, 1)) = LCase(class_status(0)) Then
+                    
+                        If CInt(Right(start.Offset(counter, month_int), 4)) = years(1) Then
+                    
+                            If LCase(Mid(start.Offset(counter, month_int).Value, 10, 3)) = LCase(Left(months(i), 3)) Then
+                                
+                                month_exist_bool = True
+                    
+                                    If LCase(start.Offset(counter, insgro_int).Value) = LCase(insr_group(j)) Then
+                                     
+                                        repeat_counter = repeat_counter + 1
+                                        
+                                        If mio_bool = False Then
+                                            
+                                            result = mio_range_finder(mio_range, mio_counter, mio_bool, insr_group, skipper_counter, months, month_counter, insr_group_iter, repeat_counter)
+                                            
+                                        End If
+                                        
+                                        If repeat_counter <> 0 And start.Offset(counter, insgro_int).Value <> vbNullString Then
+                                         
+                                            result = paster_general(names(), months, years, class_status, mio_range, start, counter, repeat_counter, insgro_int, days_int, gmlos_int, charges_int, projpay_int, dircos_int, conmar_int, indcos_int, netinc_int)
+                                        
+                                        End If
+                                    
+                                    End If
+                                        
+                                End If
+                            
+                            End If
+                            
+                        End If
+                        
+                    End If
+            
+                Next n
+                
+            Loop
+        
+            If repeat_counter = 0 And j > 0 Then
+            
+                skipper_counter = skipper_counter + 1
+                
+            End If
+     
+            
+            If repeat_counter <> 0 Then
+        
+            result = paster_specific(names(), months, years, class_status, mio_range, start, counter, repeat_counter)
+            positive_hit = positive_hit + 1
+            
+            End If
+            
+            If j = UBound(months) Then
+            
+                GoTo advance
+                
+            End If
+        
+            If repeat_counter = 0 And j = UBound(months) Then
+            
+                MsgBox "11" & "    " & i
+            
+                GoTo skip
+                
+            End If
+            
+            If month_exist_bool = False Then
+            
+                GoTo skip
+                
+            End If
+            
+        Next j
+
+advance:
+    result = positive_hit_calculator(mio_range, positive_hit)
+    result = new_title_formatter(mio_range)
+    
+    If i = y2IP Then
+    
+        Set mio_range = mio_range.Offset(8, 0)
+        
+        mio_range.Offset(5, -2).Value = "Outpatient"
+        mio_range.Offset(5, -2).Font.Bold = True
+        mio_range.Offset(5, -2).Font.Underline = True
+        result = header_outpatient_specific(mio_range)
+        
+    End If
+    
+    If i <> y2IP Then
+    
+        result = header_inpatient_specific(mio_range)
+        
+    End If
+    
+skip:
+    Next i
+    
+Exit Function
+err_command_test:
+
+    MsgBox "This is the function " & err.Description
+    
+End Function
+Function y1OP_populator(y1OP As Integer, names() As String, months As Variant, years As Variant, class_status As Variant, insr_group As Variant, mio_range As Range, start As Range, sheet_counter, phy_bool As Boolean, ipop_int As Integer, month_int As Integer, attphy_int As Long, insgro_int As Integer, charges_int As Integer, projpay_int As Integer, dircos_int As Integer, conmar_int As Integer, indcos_int As Integer, netinc_int As Integer)
+
+On Error GoTo err_command_test
+    'Dim start As Range
+    Dim counter As Long
+    Dim end_point As Long
+    
+    Dim repeat_counter As Long
+    
+  
+    Dim mio_counter As Long
+    Dim mio_bool As Boolean
+    Dim month_counter As Integer
+
+    Dim skipper_counter As Variant
+    Dim positive_hit As Long
+    
+    Dim insr_group_iter As Long
+    
+    Dim month_exist_bool As Boolean
+    
+    Dim phy_string As String
+    
+    end_point = ActiveWorkbook.Worksheets(sheet_counter).UsedRange.Rows.Count - 1
+    
+    
+    
+    For i = y1OP To 11
+        
+        month_counter = i
+        skipper_counter = 0
+        positive_hit = 0
+        mio_counter = -1
+        month_exist_bool = False
+        
+        For j = 0 To UBound(insr_group)
+        
+            'Set start = ActiveWorkbook.Worksheets(2).Range("a2")
+            insr_group_iter = j
+            counter = -1
+            mio_bool = False
+            repeat_counter = 0
+            skipper_bool = False
+            mio_counter = mio_counter + 1
+            
+            Do While counter <= end_point
+            
+                counter = counter + 1
+                
+                If start.Offset(counter, 0).Value = vbNullString Then
+                
+                    Exit Do
+                    
+                End If
+                
+                If phy_bool = True Then
+        
+                    phy_string = LCase(Mid(Left(start.Offset(counter, attphy_int).Value, InStr(start.Offset(counter, attphy_int).Value, ",") - 1), 13))
+            
+                End If
+        
+                If phy_bool = False Then
+        
+                    phy_string = LCase(Left(start.Offset(counter, attphy_int).Value, InStr(start.Offset(counter, attphy_int).Value, ",") - 1))
+            
+                End If
+                
+                For n = 0 To UBound(names())
+                
+                If phy_string = names(n) Then
+            
+                    If LCase(Left(start.Offset(counter, ipop_int).Value, 1)) = LCase(class_status(1)) Then
+                    
+                        If CInt(Right(start.Offset(counter, month_int), 4)) = years(0) Then
+                    
+                            
+                                If LCase(Mid(start.Offset(counter, month_int).Value, 10, 3)) = LCase(Left(months(i), 3)) Then
+                                    month_exist_bool = True
+                                   
+                                    
+                                    If LCase(start.Offset(counter, insgro_int).Value) = LCase(insr_group(j)) Then
+                                     
+                                        repeat_counter = repeat_counter + 1
+                                        
+                                        If mio_bool = False Then
+                                       
+                                            result = mio_range_finder(mio_range, mio_counter, mio_bool, insr_group, skipper_counter, months, month_counter, insr_group_iter, repeat_counter)
+                                            
+                                        End If
+                                        
+                                        If repeat_counter <> 0 And start.Offset(counter, 1).Value <> vbNullString Then
+                                      
+                                            result = paster_OP_general(names(), months, years, class_status, mio_range, start, counter, repeat_counter, insgro_int, charges_int, projpay_int, dircos_int, conmar_int, indcos_int, netinc_int)
+                                     
+                                        End If
+                                                                                                              
+                                    End If
+                                        
+                                End If
+                        
+                        End If
+                        
+                    End If
+                    
+                End If
+            
+            Next n
+            
+            Loop
+        
+            
+            
+            
+            If repeat_counter = 0 And j > 0 Then
+            
+                skipper_counter = skipper_counter + 1
+      
+            End If
+                                  
+            If repeat_counter <> 0 Then
+        
+            result = paster_OP_specific(names(), months, years, class_status, mio_range, start, counter, repeat_counter)
+            positive_hit = positive_hit + 1
+            
+            End If
+            
+            If j = UBound(months) Then
+            
+                GoTo advance
+                
+            End If
+        
+            If repeat_counter = 0 And j = UBound(months) Then
+            
+                MsgBox "11" & "    " & i
+            
+                GoTo skip
+                
+            End If
+            
+            If month_exist_bool = False Then
+            
+                GoTo skip
+                
+            End If
+            
+        Next j
+advance:
+    result = positive_OP_hit_calculator(mio_range, positive_hit)
+    result = new_OP_title_formatter(mio_range)
+    result = header_outpatient_specific(mio_range)
+skip:
+    Next i
+    
+Exit Function
+err_command_test:
+
+    MsgBox "This is the function " & err.Description
+    
+End Function
+Function y2OP_populator(y2OP As Integer, names() As String, months As Variant, years As Variant, class_status As Variant, insr_group As Variant, mio_range As Range, start As Range, sheet_counter, phy_bool As Boolean, ipop_int As Integer, month_int As Integer, attphy_int As Long, insgro_int As Integer, charges_int As Integer, projpay_int As Integer, dircos_int As Integer, conmar_int As Integer, indcos_int As Integer, netinc_int As Integer)
+
+On Error GoTo err_command_test
+    'Dim start As Range
+    Dim counter As Long
+    Dim end_point As Long
+    
+    Dim repeat_counter As Long
+    
+   
+    Dim mio_counter As Long
+    Dim mio_bool As Boolean
+    Dim month_counter As Integer
+
+    Dim skipper_counter As Variant
+    Dim positive_hit As Long
+    
+    Dim insr_group_iter As Long
+    
+    Dim month_exist_bool As Boolean
+    
+    Dim phy_string As String
+           
+    end_point = ActiveWorkbook.Worksheets(sheet_counter).UsedRange.Rows.Count - 1
+    
+    
+    
+    For i = 0 To y2OP
+        
+        month_counter = i
+        skipper_counter = 0
+        positive_hit = 0
+        mio_counter = -1
+        month_exist_bool = False
+        
+        For j = 0 To UBound(insr_group)
+        
+            'Set start = ActiveWorkbook.Worksheets(2).Range("a2")
+            insr_group_iter = j
+            counter = -1
+            mio_bool = False
+            repeat_counter = 0
+            skipper_bool = False
+            mio_counter = mio_counter + 1
+            
+            Do While counter <= end_point
+            
+                counter = counter + 1
+                
+                If start.Offset(counter, 0).Value = vbNullString Then
+                
+                    Exit Do
+                    
+                End If
+                
+                If phy_bool = True Then
+        
+                    phy_string = LCase(Mid(Left(start.Offset(counter, attphy_int).Value, InStr(start.Offset(counter, attphy_int).Value, ",") - 1), 13))
+            
+                End If
+        
+                If phy_bool = False Then
+        
+                    phy_string = LCase(Left(start.Offset(counter, attphy_int).Value, InStr(start.Offset(counter, attphy_int).Value, ",") - 1))
+            
+                End If
+                
+                For n = 0 To UBound(names())
+                
+                If phy_string = names(n) Then
+            
+                    If LCase(Left(start.Offset(counter, ipop_int).Value, 1)) = LCase(class_status(1)) Then
+                    
+                        If CInt(Right(start.Offset(counter, month_int), 4)) = years(1) Then
+                    
+                            
+                                If LCase(Mid(start.Offset(counter, month_int).Value, 10, 3)) = LCase(Left(months(i), 3)) Then
+                                    month_exist_bool = True
+                                   
+                                    
+                                    If LCase(start.Offset(counter, insgro_int).Value) = LCase(insr_group(j)) Then
+                                     
+                                        repeat_counter = repeat_counter + 1
+                                        
+                                        If mio_bool = False Then
+                                       
+                                            result = mio_range_finder(mio_range, mio_counter, mio_bool, insr_group, skipper_counter, months, month_counter, insr_group_iter, repeat_counter)
+                                            
+                                        End If
+                                        
+                                        If repeat_counter <> 0 And start.Offset(counter, 1).Value <> vbNullString Then
+                                      
+                                            result = paster_OP_general(names(), months, years, class_status, mio_range, start, counter, repeat_counter, insgro_int, charges_int, projpay_int, dircos_int, conmar_int, indcos_int, netinc_int)
+                                     
+                                        End If
+                                                                                                              
+                                    End If
+                                        
+                                End If
+                        
+                        End If
+                        
+                    End If
+                    
+                End If
+            
+            Next n
+            
+            Loop
+        
+            
+            
+            
+            If repeat_counter = 0 And j > 0 Then
+            
+                skipper_counter = skipper_counter + 1
+      
+            End If
+                                  
+            If repeat_counter <> 0 Then
+        
+            result = paster_OP_specific(names(), months, years, class_status, mio_range, start, counter, repeat_counter)
+            positive_hit = positive_hit + 1
+            
+            End If
+            
+            If j = UBound(months) Then
+            
+                GoTo advance
+                
+            End If
+        
+            If repeat_counter = 0 And j = UBound(months) Then
+            
+                MsgBox "11" & "    " & i
+            
+                GoTo skip
+                
+            End If
+            
+            If month_exist_bool = False Then
+            
+                GoTo skip
+                
+            End If
+            
+        Next j
+        
+advance:
+    result = positive_OP_hit_calculator(mio_range, positive_hit)
+    result = new_OP_title_formatter(mio_range)
+    
+    If i <> y2OP Then
+    
+        result = header_outpatient_specific(mio_range)
+        
+    End If
+    
+skip:
+    Next i
+    
+Exit Function
+err_command_test:
+
+    MsgBox "This is the function " & err.Description
+    
+End Function
+Function new_title_formatter(mio_range As Range)
+
+    Dim new_range As Range
+    Dim counter As Integer
+    
+    Set new_range = mio_range.Offset(1, 0)
+    
+    counter = -1
+    
+    For i = 0 To 10
+    
+        counter = counter + 1
+        
+        If i = 0 Then
+        
+            new_range.Offset(0, counter).Value = "Total"
+            
+        End If
+        
+        If i >= 5 Then
+        
+            new_range.Offset(0, counter).Style = "Comma [0]"
+            
+                If new_range.Offset(0, counter).Value < 0 Then
+                
+                    new_range.Offset(0, counter).Style = "Warning Text"
+                    
+                End If
+            
+        End If
+        
+        new_range.Offset(0, counter).Select
+        Selection.Font.Bold = True
+        
+        With Selection
+        
+            .HorizontalAlignment = xlRight
+            
+        End With
+        With Selection.Borders(xlEdgeTop)
+            .LineStyle = xlContinuous
+            .ColorIndex = 0
+            .TintAndShade = 0
+            .Weight = xlThin
+        End With
+        With Selection.Borders(xlEdgeBottom)
+            .LineStyle = xlDouble
+            .ColorIndex = 0
+            .TintAndShade = 0
+            .Weight = xlThick
+        End With
+        
+    Next i
+    
+End Function
+Function new_OP_title_formatter(mio_range As Range)
+
+    Dim new_range As Range
+    Dim counter As Integer
+    
+    Set new_range = mio_range.Offset(1, 0)
+    
+    counter = -1
+    
+    For i = 0 To 8
+    
+        counter = counter + 1
+        
+        If i = 0 Then
+        
+            new_range.Offset(0, counter).Value = "Total"
+            
+        End If
+        
+        If i >= 3 Then
+        
+            new_range.Offset(0, counter).Style = "Comma [0]"
+            
+                If new_range.Offset(0, counter).Value < 0 Then
+                
+                    new_range.Offset(0, counter).Style = "Warning Text"
+                    
+                End If
+            
+        End If
+        
+        new_range.Offset(0, counter).Select
+        Selection.Font.Bold = True
+        
+        With Selection
+        
+            .HorizontalAlignment = xlRight
+            
+        End With
+        With Selection.Borders(xlEdgeTop)
+            .LineStyle = xlContinuous
+            .ColorIndex = 0
+            .TintAndShade = 0
+            .Weight = xlThin
+        End With
+        With Selection.Borders(xlEdgeBottom)
+            .LineStyle = xlDouble
+            .ColorIndex = 0
+            .TintAndShade = 0
+            .Weight = xlThick
+        End With
+        
+    Next i
+    
+End Function
+Function positive_OP_hit_calculator(mio_range As Range, positive_hit As Long)
+
+    Dim new_total_range As Range
+    Dim new_top_range As Range
+    
+    Dim column_counter As Integer
+    Dim total_counter As Variant
+    
+    Set new_range = mio_range.Offset(1, 1)
+    
+    column_counter = -1
+    
+    For i = 0 To 7
+    
+        Set new_top_range = new_range.Offset(-positive_hit, i)
+
+        total_counter = 0
+        
+        If i = 0 Then
+        
+            For j = 0 To (positive_hit - 1)
+            
+                total_counter = new_top_range.Offset(j, 0).Value + total_counter
+                
+            Next j
+            
+            For k = 0 To (positive_hit - 1)
+            
+                new_top_range.Offset(k, 0).Value = Format((new_top_range.Offset(k, 0).Value / total_counter), "0%")
+         
+            Next k
+            
+            GoTo pass
+            
+        End If
+
+        If i <> 0 Then
+        
+            For l = 0 To (positive_hit - 1)
+            
+                new_range.Offset(0, i).Value = new_top_range.Offset(l, 0).Value + new_range.Offset(0, i).Value
+                
+            Next l
+            
+        End If
+pass:
+    Next i
+    
+End Function
+Function positive_hit_calculator(mio_range As Range, positive_hit As Integer)
+
+    Dim new_total_range As Range
+    Dim new_top_range As Range
+    
+    Dim column_counter As Integer
+    Dim total_counter As Variant
+    
+    Set new_range = mio_range.Offset(1, 1)
+    
+    column_counter = -1
+    
+    For i = 0 To 9
+    
+        Set new_top_range = new_range.Offset(-positive_hit, i)
+        
+        total_counter = 0
+        
+        If i = 0 Then
+        
+            For j = 0 To (positive_hit - 1)
+            
+                total_counter = new_top_range.Offset(j, 0).Value + total_counter
+                
+            Next j
+            
+            For k = 0 To (positive_hit - 1)
+            
+                new_top_range.Offset(k, 0).Value = Format((new_top_range.Offset(k, 0).Value / total_counter), "0%")
+         
+            Next k
+            
+            GoTo pass
+            
+        End If
+        
+        If i < 4 And i > 1 Then
+        
+            For m = 0 To (positive_hit - 1)
+            
+                total_counter = CDec(new_top_range.Offset(m, 0).Value) + total_counter
+                
+            Next m
+            
+            new_range.Offset(0, i).Value = (total_counter / positive_hit)
+            new_range.Offset(0, i).Style = "Comma"
+            
+            
+            GoTo pass
+        
+        End If
+        
+        If i <> 0 Then
+        
+            For l = 0 To (positive_hit - 1)
+            
+                new_range.Offset(0, i).Value = new_top_range.Offset(l, 0).Value + new_range.Offset(0, i).Value
+                
+            Next l
+            
+        End If
+pass:
+    Next i
+    
+End Function
+
+
+
+Function mio_range_finder(mio_range As Range, mio_counter As Long, mio_bool As Boolean, insr_group As Variant, skipper_counter As Variant, months As Variant, month_counter As Integer, insr_group_iter, repeat_counter As Long)
+
+    
+    Dim counter As Long
+
+    counter = -1
+
+    Do While counter < 400
+    
+        counter = counter + 1
+  
+        If LCase(mio_range.Offset(counter, 0).Value) = LCase("InsGrp") Then
+    
+            If (mio_range.Offset(counter + 1, 0).Value = vbNullString) Then
+   
+                Set mio_range = mio_range.Offset(counter + 1, 0)
+                
+                mio_range.Offset(0, -1).Value = months(month_counter)
+    
+                mio_bool = True
+         
+                GoTo pass
+            
+            End If
+            
+        End If
+    Loop
+    
+    counter = -1
+    
+    Do While counter < 400
+    
+        counter = counter + 1
+    
+        If mio_counter <> 0 And repeat_counter <> 0 Then
+        
+            Set mio_range = mio_range.Offset(counter + 1, 0)
+    
+            mio_bool = True
+                
+            Exit Do
+        
+        End If
+        
+     
+    Loop
+pass:
+    mio_bool = True
+    
+End Function
+
+Function paster_general(names() As String, months As Variant, years As Variant, class_status As Variant, mio_range As Range, start As Range, counter As Long, repeat_counter As Long, insgro_int As Integer, days_int As Integer, gmlos_int As Integer, charges_int As Integer, projpay_int As Integer, dircos_int As Integer, conmar_int As Integer, indcos_int As Integer, netinc_int As Integer)
+
+    
+    
+    If start.Offset(counter, insgro_int).Value <> vbNullString Then
+    
+        mio_range.Value = start.Offset(counter, insgro_int).Value
+        
+    End If
+    
+    mio_range.Offset(0, 1).Value = repeat_counter
+    mio_range.Offset(0, 2).Value = repeat_counter
+    mio_range.Offset(0, 3).Value = Format(CDec((mio_range.Offset(0, 3).Value + start.Offset(counter, days_int).Value)), "0.00")
+    mio_range.Offset(0, 4).Value = Format(CDec((mio_range.Offset(0, 4).Value + start.Offset(counter, gmlos_int).Value)), "0.00")
+    mio_range.Offset(0, 5).Value = mio_range.Offset(0, 5).Value + CLng(start.Offset(counter, charges_int).Value)
+    mio_range.Offset(0, 6).Value = CLng(mio_range.Offset(0, 6).Value + start.Offset(counter, projpay_int).Value)
+    mio_range.Offset(0, 7).Value = mio_range.Offset(0, 7).Value + CLng(start.Offset(counter, dircos_int).Value)
+    mio_range.Offset(0, 8).Value = mio_range.Offset(0, 8).Value + CLng(start.Offset(counter, conmar_int).Value)
+    mio_range.Offset(0, 9).Value = mio_range.Offset(0, 9).Value + CLng(start.Offset(counter, indcos_int).Value)
+    mio_range.Offset(0, 10).Value = mio_range.Offset(0, 10).Value + CLng(start.Offset(counter, netinc_int).Value)
+    
+End Function
+Function paster_OP_general(names() As String, months As Variant, years As Variant, class_status As Variant, mio_range As Range, start As Range, counter As Long, repeat_counter As Long, insgro_ As Integer, charges_int As Integer, projpay_int As Integer, dircos_int As Integer, conmar_int As Integer, indcos_int As Integer, netinc_int As Integer)
+
+    On Error GoTo err
+    
+    If start.Offset(counter, insgro_int).Value <> vbNullString Then
+    
+        mio_range.Value = start.Offset(counter, insgro_int + 1).Value
+        
+    End If
+    
+    mio_range.Offset(0, 1).Value = repeat_counter
+    mio_range.Offset(0, 2).Value = repeat_counter
+    mio_range.Offset(0, 3).Value = mio_range.Offset(0, 3).Value + CLng(start.Offset(counter, charges_int).Value)
+    
+    If start.Offset(counter, projpay_int).Value = "NULL" Then
+    
+        mio_range.Offset(0, 4).Value = CLng(mio_range.Offset(0, 4).Value) + 0
+        
+        GoTo skip
+        
+    End If
+    
+    mio_range.Offset(0, 4).Value = CLng(mio_range.Offset(0, 4).Value) + CLng(start.Offset(counter, projpay_int).Value)
+    
+skip:
+
+    mio_range.Offset(0, 5).Value = mio_range.Offset(0, 5).Value + start.Offset(counter, dircos_int).Value
+    mio_range.Offset(0, 6).Value = mio_range.Offset(0, 6).Value + CLng(start.Offset(counter, conmar_int).Value)
+    mio_range.Offset(0, 7).Value = mio_range.Offset(0, 7).Value + CLng(start.Offset(counter, indcos_int).Value)
+    mio_range.Offset(0, 8).Value = mio_range.Offset(0, 8).Value + CLng(start.Offset(counter, netinc_int).Value)
+    
+    Exit Function
+    
+err:
+    
+    MsgBox start.Offset(counter, 10).Value
+    
+    MsgBox counter
+    
+    MsgBox mio_range.Offset(0, 4).Value
+    
+    MsgBox "This is the function " & err.Description
+    
+End Function
+Function paster_OP_specific(names() As String, months As Variant, years As Variant, class_status As Variant, mio_range As Range, start As Range, counter As Long, repeat_counter As Long)
+    
+    For p = 3 To 8
+    
+        mio_range.Offset(0, p).Style = "Comma [0]"
+    
+        If mio_range.Offset(0, p).Value < 0 Then
+        
+            mio_range.Offset(0, p).Style = "Warning Text"
+            
+        End If
+        
+    Next p
+    
+End Function
+Function paster_specific(names() As String, months As Variant, years As Variant, class_status As Variant, mio_range As Range, start As Range, counter As Long, repeat_counter As Long)
+
+    mio_range.Offset(0, 3).Value = mio_range.Offset(0, 3).Value / mio_range.Offset(0, 1).Value
+    mio_range.Offset(0, 3).Style = "Comma"
+    mio_range.Offset(0, 4).Value = mio_range.Offset(0, 4).Value / mio_range.Offset(0, 1).Value
+    mio_range.Offset(0, 4).Style = "Comma"
+    
+    For p = 5 To 10
+    
+        mio_range.Offset(0, p).Style = "Comma [0]"
+    
+        If mio_range.Offset(0, p).Value < 0 Then
+        
+            mio_range.Offset(0, p).Style = "Warning Text"
+            
+        End If
+        
+    Next p
+    
+End Function
+
+Function header_inpatient_specific(mio_range As Range)
+
+    Dim anchor As Range
+    Dim headers1 As Variant
+    Dim headers2 As Variant
+    Dim counter As Integer
+    
+    Set anchor = mio_range.Offset(4, 0)
+    
+    headers1 = Array("", "", "", "", "", "", "Projected", "Direct", "Contribution", "Indirect", "Net")
+
+    headers2 = Array("InsGrp", "Payor Mix", "Cases", "ALOS", "GMLOS", "Charges", "Payments", "Cost", "Margin", "Costs", "Income")
+    
+    counter = -1
+    
+    For i = LBound(headers2) To UBound(headers2)
+    
+        counter = counter + 1
+        
+        anchor.Offset(-1, counter).Value = headers1(i)
+        anchor.Offset(0, counter).Value = headers2(i)
+    
+    Next i
+    
+    Rows(anchor.Offset(-1, 0).Row).Select
+    
+    With Selection
+    
+        .HorizontalAlignment = xlCenter
+        .VerticalAlignment = xlBottom
+        .WrapText = True
+        .Orientation = 0
+        .AddIndent = False
+        .IndentLevel = 0
+        .ShrinkToFit = False
+        .ReadingOrder = xlContext
+        .MergeCells = False
+        .Font.Bold = True
+    End With
+    
+    Application.CutCopyMode = False
+    
+    
+    Rows(anchor.Row).Select
+    
+    With Selection
+    
+        .HorizontalAlignment = xlCenter
+        .VerticalAlignment = xlBottom
+        .WrapText = True
+        .Orientation = 0
+        .AddIndent = False
+        .IndentLevel = 0
+        .ShrinkToFit = False
+        .ReadingOrder = xlContext
+        .MergeCells = False
+        .Font.Bold = True
+        .Font.Underline = True
+        .RowHeight = 15.75
+        
+    End With
+    
+    Application.CutCopyMode = False
+    
+    Set mio_range = mio_range.Offset(3, 0)
+    
+End Function
+Function header_outpatient_specific(mio_range As Range)              '
+
+    Dim anchor As Range
+    Dim headers1 As Variant
+    Dim headers2 As Variant
+    Dim counter As Integer
+    
+    Set anchor = mio_range.Offset(4, 0)
+    
+    headers1 = Array("", "", "", "", "Projected", "Direct", "Contribution", "Indirect", "Net")
+
+    headers2 = Array("InsGrp", "Payor Mix", "Cases", "Charges", "Payments", "Cost", "Margin", "Costs", "Income")
+    
+    counter = -1
+    
+    For i = LBound(headers2) To UBound(headers2)
+    
+        counter = counter + 1
+        
+        anchor.Offset(-1, counter).Value = headers1(i)
+        anchor.Offset(0, counter).Value = headers2(i)
+    
+    Next i
+    
+    Rows(anchor.Offset(-1, 0).Row).Select
+    
+    With Selection
+    
+        .HorizontalAlignment = xlCenter
+        .VerticalAlignment = xlBottom
+        .WrapText = True
+        .Orientation = 0
+        .AddIndent = False
+        .IndentLevel = 0
+        .ShrinkToFit = False
+        .ReadingOrder = xlContext
+        .MergeCells = False
+        .Font.Bold = True
+    End With
+    
+    Application.CutCopyMode = False
+    
+    
+    Rows(anchor.Row).Select
+    
+    With Selection
+    
+        .HorizontalAlignment = xlCenter
+        .VerticalAlignment = xlBottom
+        .WrapText = True
+        .Orientation = 0
+        .AddIndent = False
+        .IndentLevel = 0
+        .ShrinkToFit = False
+        .ReadingOrder = xlContext
+        .MergeCells = False
+        .Font.Bold = True
+        .Font.Underline = True
+        .RowHeight = 15.75
+        
+    End With
+    
+    Application.CutCopyMode = False
+    
+    Set mio_range = mio_range.Offset(3, 0)
+    
+End Function
+
+Function column_width_monthly()
+    
+    Columns(1).Select
+    Selection.ColumnWidth = 12.14
+    
+    Columns(2).Select
+    Selection.ColumnWidth = 10.14
+    Selection.Font.Bold = True
+    
+    Columns(3).Select
+    Selection.ColumnWidth = 18.71
+    
+    Columns(4).Select
+    Selection.ColumnWidth = 9.14
+    
+    Columns(5).Select
+    Selection.ColumnWidth = 8.29
+    
+    Columns(6).Select
+    Selection.ColumnWidth = 10.63
+    
+    Columns(7).Select
+    Selection.ColumnWidth = 9.86
+    
+    Columns(8).Select
+    Selection.ColumnWidth = 12.14
+    
+    Columns(9).Select
+    Selection.ColumnWidth = 12.14
+    
+    Columns(10).Select
+    Selection.ColumnWidth = 12.14
+    
+    Columns(11).Select
+    Selection.ColumnWidth = 12.14
+    
+    Columns(12).Select
+    Selection.ColumnWidth = 12.14
+    
+    Columns(13).Select
+    Selection.ColumnWidth = 12.14
+
+    
+End Function
+
+Function title_setter_monthly(names() As String, y1IP As Integer, y2OP As Integer, years As Variant, months As Variant, inpatient_bool As Boolean)
+
+Application.DisplayAlerts = False
+
+    Dim into As String
+    Dim dr_string As String
+    
+    result = dr_names(names(), dr_string)
+    
+    If inpatient_bool = False Then
+    
+        ActiveWorkbook.Worksheets(1).Range("a8").Value = "Outpatient"
+        
+        GoTo pass
+        
+    End If
+    ActiveWorkbook.Worksheets(1).Range("a8").Value = "Inpatient"
+    
+pass:
+    
+    ActiveWorkbook.Worksheets(1).Range("a8").Font.Bold = True
+    ActiveWorkbook.Worksheets(1).Range("A1:m1").Select
+    
+    With Selection
+    
+        .HorizontalAlignment = xlCenter
+        .VerticalAlignment = xlBottom
+        .WrapText = False
+        .Orientation = 0
+        .AddIndent = False
+        .IndentLevel = 0
+        .ShrinkToFit = False
+        .ReadingOrder = xlContext
+        .MergeCells = False
+        .Font.Bold = True
+        
+    End With
+    Selection.Merge
+    Selection.Value = "Erlanger Health System"
+    Application.CutCopyMode = False
+    
+    ActiveWorkbook.Worksheets(1).Range("A2:m2").Select
+    
+    With Selection
+    
+        .HorizontalAlignment = xlCenter
+        .VerticalAlignment = xlBottom
+        .WrapText = False
+        .Orientation = 0
+        .AddIndent = False
+        .IndentLevel = 0
+        .ShrinkToFit = False
+        .ReadingOrder = xlContext
+        .MergeCells = False
+        .Font.Bold = True
+        .Value = dr_string
+    End With
+    Selection.Merge
+    
+        ActiveWorkbook.Worksheets(1).Range("A3:m3").Select
+    
+    With Selection
+    
+        .HorizontalAlignment = xlCenter
+        .VerticalAlignment = xlBottom
+        .WrapText = False
+        .Orientation = 0
+        .AddIndent = False
+        .IndentLevel = 0
+        .ShrinkToFit = False
+        .ReadingOrder = xlContext
+        .MergeCells = False
+        .Font.Bold = True
+        .Value = Application.WorksheetFunction.Proper(months(y1IP)) & ", " & Application.WorksheetFunction.Proper(years(0)) & " - " & Application.WorksheetFunction.Proper(months(y2OP)) & ", " & Application.WorksheetFunction.Proper(years(1))
+    End With
+    Selection.Merge
+    
+    ActiveWindow.DisplayGridlines = False
+    
+    'ActiveWorkbook.Worksheets(1).name = Application.WorksheetFunction.Proper(names(0)) & "'s Monthly Data"
+    
+    Application.DisplayAlerts = True
+    
+    
+    
+End Function
+
+Function header_inpatient_general()
+
+    Dim anchor As Range
+    Dim headers1 As Variant
+    Dim headers2 As Variant
+    Dim counter As Integer
+    
+    Set anchor = ActiveWorkbook.Worksheets(1).Range("c7")
+    
+    headers1 = Array("", "", "", "", "", "", "Projected", "Direct", "Contribution", "Indirect", "Net")
+
+    headers2 = Array("InsGrp", "Payor Mix", "Cases", "ALOS", "GMLOS", "Charges", "Payments", "Cost", "Margin", "Costs", "Income")
+    
+    counter = -1
+    
+    For i = LBound(headers2) To UBound(headers2)
+    
+        counter = counter + 1
+        
+        anchor.Offset(-1, counter).Value = headers1(i)
+        anchor.Offset(0, counter).Value = headers2(i)
+    
+    Next i
+    
+    Rows(anchor.Offset(-1, 0).Row).Select
+    
+    With Selection
+    
+        .HorizontalAlignment = xlCenter
+        .VerticalAlignment = xlBottom
+        .WrapText = True
+        .Orientation = 0
+        .AddIndent = False
+        .IndentLevel = 0
+        .ShrinkToFit = False
+        .ReadingOrder = xlContext
+        .MergeCells = False
+        .Font.Bold = True
+    End With
+    
+    Application.CutCopyMode = False
+    
+    
+    Rows(anchor.Row).Select
+    
+    With Selection
+    
+        .HorizontalAlignment = xlCenter
+        .VerticalAlignment = xlBottom
+        .WrapText = True
+        .Orientation = 0
+        .AddIndent = False
+        .IndentLevel = 0
+        .ShrinkToFit = False
+        .ReadingOrder = xlContext
+        .MergeCells = False
+        .Font.Bold = True
+        .Font.Underline = True
+        .RowHeight = 15.75
+    End With
+    
+    Application.CutCopyMode = False
+    
+        
+End Function
+Function header_outpatient_general()
+
+    Dim anchor As Range
+    Dim headers1 As Variant
+    Dim headers2 As Variant
+    Dim counter As Integer
+    
+    Set anchor = ActiveWorkbook.Worksheets(1).Range("c7")
+    
+    headers1 = Array("", "", "", "", "Projected", "Direct", "Contribution", "Indirect", "Net")
+
+    headers2 = Array("InsGrp", "Payor Mix", "Cases", "Charges", "Payments", "Cost", "Margin", "Costs", "Income")
+    
+    counter = -1
+    
+    For i = LBound(headers2) To UBound(headers2)
+    
+        counter = counter + 1
+        
+        anchor.Offset(-1, counter).Value = headers1(i)
+        anchor.Offset(0, counter).Value = headers2(i)
+    
+    Next i
+    
+    Rows(anchor.Offset(-1, 0).Row).Select
+    
+    With Selection
+    
+        .HorizontalAlignment = xlCenter
+        .VerticalAlignment = xlBottom
+        .WrapText = True
+        .Orientation = 0
+        .AddIndent = False
+        .IndentLevel = 0
+        .ShrinkToFit = False
+        .ReadingOrder = xlContext
+        .MergeCells = False
+        .Font.Bold = True
+    End With
+    
+    Application.CutCopyMode = False
+    
+    
+    Rows(anchor.Row).Select
+    
+    With Selection
+    
+        .HorizontalAlignment = xlCenter
+        .VerticalAlignment = xlBottom
+        .WrapText = True
+        .Orientation = 0
+        .AddIndent = False
+        .IndentLevel = 0
+        .ShrinkToFit = False
+        .ReadingOrder = xlContext
+        .MergeCells = False
+        .Font.Bold = True
+        .Font.Underline = True
+        .RowHeight = 15.75
+    End With
+    
+    Application.CutCopyMode = False
+    
+        
+End Function
+
+Function date_wheel(years As Variant, months As Variant, month_int As Integer)
+                                    
+    
+    years = Array("", "")
+    
+    result = find_year_spoke(years, month_int)
+    result = month_houser(months)
+    
+    
+End Function
+
+Function find_year_spoke(years As Variant, month_int As Integer)
+
+    Dim dummy As Range
+    Dim start As Range
+    Dim counter As Long
+    Dim year As Integer
+    Dim switch As Boolean
+    Dim sheet_counter As Integer
+    
+    'Set start = ActiveWorkbook.Worksheets(2).Range("d2")
+    result = raw_data_finder(start, sheet_counter)
+    
+    Set dummy = start.Offset(0, month_int)
+    
+    
+    counter = -1
+    switch = False
+    Do While counter < 5000
+
+        counter = counter + 1
+        
+        If dummy.Offset(counter, 0).Value = vbNullString Then
+        
+            Exit Do
+            
+        End If
+        
+        If switch = True Then
+        
+            GoTo pass
+  
+        End If
+
+        year = Right(dummy.Offset(counter, 0).Value, 4)
+        switch = True
+   
+        GoTo skip
+pass:
+        If year > Right(dummy.Offset(counter, 0).Value, 4) Then
+      
+            years(0) = CInt(Right(dummy.Offset(counter, 0).Value, 4))
+            years(1) = CInt(year)
+            
+            Exit Do
+     
+        ElseIf year = Right(dummy.Offset(counter, 0).Value, 4) Then
+        
+            GoTo skip
+  
+        Else
+        
+            years(0) = CInt(year)
+            years(1) = CInt(Right(dummy.Offset(counter, 0).Value, 4))
+            
+            Exit Do
+
+        End If
+skip:
+    Loop
+        
+End Function
+Function month_houser(months As Variant)
+
+    months = Array("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
+    
+End Function
+
+Function name_wheel(names() As String, name_counter As Integer, attphy_int As Long)
+
+    name_counter = 0
+    
+    result = name_storer(names(), name_counter, attphy_int)
+    
+    'For i = LBound(names) To UBound(names)
+    
+        'MsgBox names(i)
+        
+    'Next i
+
+End Function
+
+Function name_storer(names() As String, name_counter As Integer, attphy_int As Long)
+    
+    Dim counter As Integer
+    Dim standin As String
+    Dim standinbool As Boolean
+    
+    counter = -1
+    
+    For i = 0 To 14
+        
+        counter = counter + 1
+again:
+        ReDim Preserve names(counter)
+        names(counter) = LCase(InputBox("Please enter the last name of a doctor. If you'd like to run a monthly P&L on all doctors, type 'all'.                                                                                                    This message box will appear again, and you may enter up to 10 names. When you're finished entering names, type 'done'."))
+        
+        If names(counter) = vbNullString Then
+        
+            MsgBox "You did not enter anything. Please type in a doctor's last name, or if you're finished, type in 'done'"
+            
+            GoTo again
+        
+        End If
+        
+        standin = names(counter)
+        standinbool = False
+        
+        result = name_compare(standin, standinbool, attphy_int)
+        
+        If LCase(names(counter)) = "all" Then
+        
+            result = name_summer(names(), attphy_int)
+            
+            Exit Function
+        
+        End If
+        
+        
+        If standinbool = False And LCase(names(counter)) <> "done" Then
+        
+            MsgBox "The last name you typed did not match the given list of data. Please type in a doctor's last name, or if you're finished, type in 'done'"
+            
+            GoTo again
+            
+        End If
+        
+        If counter > 0 And LCase(names(counter)) <> "done" Then
+        
+            For j = 0 To counter
+            
+                If names(j) = names(counter) And j <> counter Then
+                
+                    MsgBox "You've already entered that last name. Enter in a new last name, or if you're done, type 'done'"
+                    
+                    GoTo again
+                    
+                End If
+                
+            Next j
+            
+        End If
+        
+        If LCase(names(0)) = "done" Then
+        
+            
+            MsgBox "You've selected 'done' without entering in any doctor's names. The code will not run"
+            
+            ReDim Preserve names(UBound(names) - 1)
+            
+            Exit Function
+            
+        End If
+
+        
+        If LCase(names(counter)) = "done" Or i = 15 Then
+            
+            ReDim Preserve names(UBound(names) - 1)
+            
+            Exit Function
+            
+        End If
+
+        name_counter = name_counter + 1
+    Next i
+        
+End Function
+Function name_summer(names() As String, attphy_int As Long)
+
+    Dim name As String
+    Dim start As Range
+    Dim dummy As Range
+    Dim wlen As Integer
+    Dim counter As Long
+    Dim name_counter As Integer
+    
+    Dim sheet_counter As Integer
+    
+    Dim dummy_error_int As Integer
+    Dim dummy_error_bool As Boolean
+    
+    Dim name_bool As Boolean
+    
+    On Error GoTo err
+    result = raw_data_finder(start, sheet_counter)
+    
+    'Set start = ActiveWorkbook.Worksheets(2).Range("f2")
+    
+    Set dummy = start.Offset(0, attphy_int)
+    
+    dummy_error_int = CInt(Left(start.Offset(0, attphy_int), 1))
+    
+    counter = -1
+    name_counter = 0
+    
+    Do While counter < 20000
+    
+        name = ""
+        name_bool = False
+        ReDim Preserve names(name_counter)
+        
+        counter = counter + 1
+        
+        If dummy.Offset(counter, 0).Value = vbNullString Then
+            
+            Exit Do
+            
+        End If
+    
+        name = LCase(Mid(Left(dummy.Offset(counter, 0).Value, InStr(dummy.Offset(counter, 0).Value, ",") - 1), 13))
+        
+        If name_counter = 0 Then
+        
+            names(0) = name
+            
+            name_counter = name_counter + 1
+            
+            GoTo name_skip1
+            
+        End If
+            
+        For i = LBound(names()) To UBound(names())
+        
+            If name = names(i) Then
+            
+                name_bool = True
+                
+            End If
+        
+        Next i
+            
+        If name_bool = False Then
+        
+            names(name_counter) = name
+            
+            name_counter = name_counter + 1
+            
+        End If
+        
+name_skip1:
+    Loop
+
+    ReDim Preserve names(UBound(names) - 1)
+
+    Exit Function
+    
+err:
+    
+    counter = -1
+    
+    Do While counter < 20000
+    
+        name = ""
+        name_bool = False
+        
+        counter = counter + 1
+        
+        If dummy.Offset(counter, 0).Value = vbNullString Then
+            
+            ReDim Preserve names(UBound(names) - 1)
+            
+            Exit Do
+            
+        End If
+
+        name = LCase(Left(dummy.Offset(counter, 0).Value, InStr(dummy.Offset(counter, 0).Value, ",") - 1))
+
+        If name_counter = 0 Then
+        
+            names(0) = name
+            
+            name_counter = name_counter + 1
+            
+            GoTo name_skip2
+            
+        End If
+            
+        For i = LBound(names()) To UBound(names())
+        
+            If name = names(i) Then
+            
+                name_bool = True
+                
+            End If
+        
+        Next i
+            
+        If name_bool = False Then
+        
+            names(name_counter) = name
+            
+            name_counter = name_counter + 1
+            
+        End If
+        
+name_skip2:
+        
+    Loop
+    
+    ReDim Preserve names(UBound(names) - 1)
+
+End Function
+
+Function name_compare(standin As String, standinbool As Boolean, attphy_int As Long)
+
+    Dim name As String
+    Dim start As Range
+    Dim dummy As Range
+    Dim wlen As Integer
+    Dim counter As Long
+    
+    Dim sheet_counter As Integer
+    
+    Dim dummy_error_int As Integer
+    Dim dummy_error_bool As Boolean
+    
+    On Error GoTo err
+    result = raw_data_finder(start, sheet_counter)
+    
+    'Set start = ActiveWorkbook.Worksheets(2).Range("f2")
+    
+    Set dummy = start.Offset(0, attphy_int)
+    
+    dummy_error_int = CInt(Left(start.Offset(0, attphy_int), 1))
+    
+
+    
+    wlen = InStr(start.Value, ",")
+    counter = -1
+    
+    Do While counter < 20000
+    
+    
+        counter = counter + 1
+        
+        If dummy.Offset(counter, 0).Value = vbNullString Then
+            
+            Exit Do
+            
+        End If
+    
+        name = LCase(Mid(Left(dummy.Offset(counter, 0).Value, InStr(dummy.Offset(counter, 0).Value, ",") - 1), 13))
+            
+        If standin = name Then
+     
+            standinbool = True
+            GoTo fin1
+            
+        End If
+        
+    Loop
+    
+fin1:
+
+    Exit Function
+    
+err:
+    
+    counter = -1
+    
+    Do While counter < 20000
+    
+    
+        counter = counter + 1
+        
+        If dummy.Offset(counter, 0).Value = vbNullString Then
+            
+            Exit Do
+            
+        End If
+
+        name = LCase(Left(dummy.Offset(counter, 0).Value, InStr(dummy.Offset(counter, 0).Value, ",") - 1))
+
+        If standin = name Then
+     
+            standinbool = True
+            GoTo fin2
+            
+        End If
+        
+    Loop
+    
+fin2:
+
+End Function
+
+Function insr_group_houser(insr_group As Variant)
+
+    insr_group = Array("Commercial", "Medicaid", "Medicare", "Medicare Advantage", "Other", "Self Pay", "TennCare")
+    
+End Function
+
+Function test()
+
+    MsgBox WorksheetFunction.CountA(ActiveWorkbook.Worksheets(2).Columns(1))
+    
+End Function
+Function class_status_houser(class_status As Variant)
+
+    class_status = Array("i", "o")
+    
+End Function
+
+Function raw_data_finder(start As Range, sheet_counter)
+
+   ' Dim sheet_counter As Integer
+    
+    Dim dummy_range As Range
+    'Dim start As Range
+    
+    'MsgBox ActiveWorkbook.Worksheets.Count
+    
+    For i = 1 To (ActiveWorkbook.Worksheets.Count)
+    
+        Set dummy_range = ActiveWorkbook.Worksheets(i).Range("a1")
+        
+        If Left(LCase(dummy_range.Value), 3) = "pat" Then
+        
+            Set start = dummy_range.Offset(1, 0)
+            sheet_counter = i
+            
+            'MsgBox start.Address
+            
+        End If
+        
+    Next i
+    
+End Function
+Function new_worksheet_creator()
+
+    ActiveWorkbook.Sheets.Add Before:=ActiveWorkbook.Worksheets(1)
+    
+End Function
+
+Function dr_names(names() As String, dr_string As String)
+
+    dr_string = "Physician Report: "
+
+    For i = 0 To UBound(names())
+    
+        If UBound(names()) = 0 Then
+        
+            dr_string = dr_string & Application.WorksheetFunction.Proper(names(i))
+            
+            GoTo fin
+            
+        End If
+    
+        If i = UBound(names()) Then
+        
+            dr_string = dr_string & " & " & Application.WorksheetFunction.Proper(names(i))
+        
+            GoTo fin
+            
+        End If
+        
+        If i = (UBound(names()) - 1) Then
+        
+            dr_string = dr_string & Application.WorksheetFunction.Proper(names(i))
+        
+            GoTo skip
+            
+        End If
+        
+        dr_string = dr_string & Application.WorksheetFunction.Proper(names(i)) & ", "
+skip:
+    Next i
+    
+fin:
+    
+    
+End Function
+
+Function find_data_rows(cases_int As Integer, ipop_int As Integer, days_int As Integer, gmlos_int As Integer, charges_int As Integer, projpay_int As Integer, dircos_int As Integer, conmar_int As Integer, indcos_int As Integer, netinc_int As Integer, insgro_int As Integer, month_int As Integer, attphy_int As Long, phy_bool As Boolean)
+
+    'Dim cases_int As Integer
+    'Dim ipop_int As Integer
+    'Dim days_int As Integer
+    'Dim gmlos_int As Integer
+    'Dim charges_int As Integer
+    'Dim projpay_int As Integer
+    'Dim dircos_int As Integer
+    'Dim conmar_int As Integer
+    'Dim indcos_int As Integer
+    'Dim netinc_int As Integer
+    'Dim insgro_int As Integer
+    'Dim month_int As Integer
+    'Dim attphy_int As Integer
+    
+    Dim sheet_counter As Integer
+    Dim start As Range
+    
+    'Dim phy_string As String
+    
+    result = raw_data_finder(start, sheet_counter)
+    
+    For i = 0 To 20
+    
+        'MsgBox start.Offset(-1, i).Value
+    
+        If start.Offset(-1, i).Value = vbNullString Then
+        
+            Exit For
+            
+        End If
+        
+        If LCase(start.Offset(-1, i).Value) = "insgrp" Then
+        
+                insgro_int = i 'Insurance Group counter
+                'MsgBox insgro_int
+        End If
+        
+        If LCase(start.Offset(-1, i).Value) = "ip_op" Then
+        
+                ipop_int = i 'Class status counter
+        
+        End If
+    
+        If Right(LCase(start.Offset(-1, i).Value), 5) = "month" Then
+        
+                month_int = i 'Month counter
+        
+        End If
+        
+        If Left(LCase(start.Offset(-1, i).Value), 4) = "atte" Then
+        
+                attphy_int = i 'Physician counter
+                
+                result = name_determine(phy_bool, attphy_int)
+        End If
+        
+        If Right(LCase(start.Offset(-1, i).Value), 5) = "gmlos" Then
+        
+                gmlos_int = i 'GMLOS counter
+        
+        End If
+        
+        If LCase(start.Offset(-1, i).Value) = "cases" Then
+        
+                cases_int = i 'Case counter
+        
+        End If
+        
+        If LCase(start.Offset(-1, i).Value) = "days" Then
+        
+                days_int = i 'Days counter
+        
+        End If
+        
+        If LCase(start.Offset(-1, i).Value) = "charges" Then
+        
+                charges_int = i 'Charge counter
+        
+        End If
+        
+        If Left(LCase(start.Offset(-1, i).Value), 4) = "proj" Then
+        
+                projpay_int = i 'projected paymenty counter
+        
+        End If
+        
+        If Left(LCase(start.Offset(-1, i).Value), 4) = "dire" Then
+        
+                dircos_int = i 'direct cost counter
+        
+        End If
+        
+        If Left(LCase(start.Offset(-1, i).Value), 4) = "cont" Then
+        
+                conmar_int = i 'contribution margin counter
+        
+        End If
+        
+        If Left(LCase(start.Offset(-1, i).Value), 4) = "indi" Then
+        
+                indcos_int = i 'indirect cost counter
+        
+        End If
+        
+        If Left(LCase(start.Offset(-1, i).Value), 3) = "net" Then
+        
+                netinc_int = i 'net income counter
+        
+        End If
+    
+    Next i
+
+    'MsgBox cases_int
+    'MsgBox ipop_int
+    'MsgBox days_int
+    'MsgBox gmlos_int
+    'MsgBox charges_int
+    'MsgBox projpay_int
+    'MsgBox dircos_int
+    'MsgBox conmar_int
+    'MsgBox indcos_int
+    'MsgBox netinc_int
+    'MsgBox insgro_int
+    'MsgBox month_int
+    'MsgBox attphy_int
+    
+    
+End Function
+
+Function name_determine(phy_bool As Boolean, attphy_int As Long)
+
+    'Dim phy_string As String
+    
+    Dim sheet_counter As Integer
+    Dim start As Range
+    
+    result = raw_data_finder(start, sheet_counter)
+    
+On Error GoTo err
+
+    If TypeName(CInt(Left(start.Offset(0, attphy_int).Value, 1))) = "Integer" Then
+    
+        phy_bool = True
+    
+    End If
+    
+    Exit Function
+    
+err:
+
+    phy_bool = False
+    
+End Function
+
+
+Function test_of_tests()
+
+    MsgBox IsNumeric(Left(ActiveCell.Value, 1))
+    
+    
+End Function

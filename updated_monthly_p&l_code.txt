@@ -1,3 +1,5 @@
+'This codes take user generated doctor information and generates monthly profit & loss reports
+
 Function years_physician_report()         ' RUN ME
 
     result = new_worksheet_creator

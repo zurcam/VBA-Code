@@ -1,0 +1,1016 @@
+Public Function main_outlier_program()
+    'THIS FUNCTION RUNS THE OUTLIER PROGRAM
+    
+    '""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    '  ------------------------------------- NOTES ON THE OUTLIER PROGRAM BEFORE YOU START --------------------------------------
+    '""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    
+    ' The outlier program runs a mathematical analysis on a new Georgia Medicaid data provided by John Benefield, and this analysis
+    ' identifies those accounts that qualify as outliers under Georgia Medicaid outlier methodology. It then compares those outlier
+    ' accounts to ones found in a prior analysis that occurred two weeks prior. It finds those accounts that only occur in the new
+    ' data, and sends out a table of those new cases in a table format to relevant parties.
+    
+    '""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    '  ------------------------------------- NECESSARY REQUIREMENTS TO RUN CODE CORRECTLY ---------------------------------------
+    '""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    
+    'The outlier code references a past Excel outlier file, where the past file is dated two weeks prior to the data on the current
+    'file. All files contain the naming convention "GA_Medicaid_Outliers_{YYYY}-{MM}-{dd}". For example, "GA_Medicaid_Outliers_2020-02-07"
+    'If the file does not have this naming convention, the code will not run. This naming convention is automatically produced from
+    'John's SQL query
+    
+    'Additionally, the code assumes that a file exists that is dated exactly two weeks prior to its own data. The code determines the
+    'dates by looking at the file name. For example, consider if the current file you are running the outlier code on is named
+    ' "GA_Medicaid_Outliers_2020-02-07". The code assumes that their will be a past file with the name "GA_Medicaid_Outliers_2020-01-24"
+    ' which is exactly two weeks prior to the current run. This is important to note, because John typically runs his query on a Friday
+    ' every two weeks, but it is possible that he might run it on another day if there is a holiday on Friday or he took the day off
+    
+    
+    ' So, IF THE DATE CONTAINED IN THE NAME OF THE NEWEST EXCEL FILE IS NOT EXACTLY TWO WEEKS AHEAD OF THE NAME OF A PAST FILE, YOU
+    ' MUST CHANGE THE NAME OF THE NEWEST EXCEL FILE TO BE EXACTLY TWO WEEKS APART FROM THE LAST FILE. As an example, if John ran
+    ' his query on Thursday, February 6, the newest Excel file would be called "GA_Medicaid_Outliers_2020-02-06". However, the past
+    ' Excel file would be called "GA_Medicaid_Outliers_2020-01-24", and the dates listed in the names are only 13 days apart. To remedy
+    ' this, simply rename the current file "GA_Medicaid_Outliers_2020-02-07" so that the dates are exactly two weeks apart.
+    
+    ' IF YOU WANT TO GENERATE THE TABLE, BUT NOT AUTOMATICALLY EMAIL ALL OTHERS, TURN OFF FUNCTIONS: [outlook_opener, Mail_Selection_Range_Outlook_Body(),
+    ' outlook_closer] by placing a single quote in front of the call
+    
+    '"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    
+    Dim opener As Boolean
+    
+    If ActiveWorkbook.Worksheets.Count >= 3 Then
+    
+        Exit Function
+        
+    End If
+    
+    'The below function call (function save_raw_data) saves the raw version of the file that you're doing the outlie calculations on,
+    'in the folder "Historical Raw Reports". That way, there is a record of what the file looked like before the calculations occured
+    
+    result = save_raw_data
+    
+    '"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    'The below function call (function delete_new_report) deletes the file stored in the "New Report" folder
+    
+    result = delete_new_report
+    
+    '"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+        
+    'The below function call (function column_straight) simply formats the columns with the sheet with data so that the value cans be
+    'cleary visible
+    
+    result = column_straight()
+    
+    '"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+        
+    'The below function call(function column_straight) adds column header names to the sheet with data on it
+    
+    result = add_headers()
+    
+    '"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+        
+    'The below function call (function import_worksheets) imports drg information from another Excel file and copies it into this workbook
+    'as the second sheet
+    
+    result = import_worksheet()
+    
+    '"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    'The function called below (function convert_to_number) changes the format of the drgs in the second sheet to a number format
+    
+    result = convert_to_number
+    
+    '"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    'The function called below (function convert_to_number) changes the format of the drgs in the first sheet under "Billing DRGs"
+    'into a number format, so that they can be compared to those on the second sheet
+    
+    result = convert_to_number_2
+    
+    '"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    'The below function (function find_drg) finds the starting place to match the drg from the eaw_data and the weights and thresholds data
+    
+    'The below function (function find_drg) also calls drg_searcher and passes the starting place location and the specific drg, and
+    'drg_searcher does the bulk of the analytical work
+    
+    result = find_drg()
+    
+    '"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+        
+    'The below function call (function column_straight) simply formats the columns with the sheet with data so that the value cans be
+    'cleary visible
+    
+    result = column_straight
+    
+    '"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    
+    'The below function (function past_file_finder) finds the previous report run, and pulls data from it
+    
+    result = past_file_finder
+    
+    '"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    
+    'The below function (function flagging_old) flags every old DRG flagged as an outlier - all those pulled from the previous report
+    
+    result = flagging_old
+    
+    '"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    
+    'The below function (function moving_new_hars) pulls the current HAR outlier information and copies it to the sheet with the old HAR outliers
+    
+    result = moving_new_hars
+    
+    '"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    
+    'The below function filters the old and new HARS for all cases with outlier status, and copies only those newly identified case to a
+    'new sheet, while deleting the sheet with both old and newly identified outliers
+    
+    result = filter_hars
+    
+    '"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    
+    'The below function (function new_outlier_locator) identifies those newly identifed outliers, and copies them over to new sheet
+    
+    result = new_outlier_locator
+    
+    '"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+      
+    ' The below function (function new_headers) copies over the headers for the identified outliers onto the new sheet with the newly identified outliers
+    
+    result = new_headers
+    
+    '"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    
+    'The below function (function outlier_case_info) copies over the new outlier information into the new sheet underneath the new headers
+    
+    result = outlier_case_info_generator
+    
+    '"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    
+    'The below function (function table_creator) reformats the newly identified outlier cases into a table
+    
+    result = table_creator
+    
+    '"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    
+    ' The below funtion (function outlook_opener) checks to see if the outlook application is open or not, and if its not it opens it
+    
+    'result = outlook_opener(opener)
+    
+    '"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    
+    'The below function (function Mail_Selection_Range_Outlook_Body) will take the table with the outlier cases, and send them as an e-mail
+    'The function also will call another function that formats the sent table into a correct html format
+    
+    'result = Mail_Selection_Range_Outlook_Body()
+    
+    '"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    
+    'The below function (function outlook_closer) checks to see if the outlook app was originally opened, and if it was not it closes outlook
+    
+    'result = outlook_closer(opener)
+    
+    '"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    
+    'The below function (function saving_report) saves the outlier file with analysis done on it to a new folder that stores historical
+    ' outlier files
+    
+    result = saving_report
+    
+End Function
+Function save_raw_data()
+    ' saves raw report to historical raw report folder
+    Dim name As String
+    
+    On Error Resume Next
+    
+    'THE FILEPATH WHERE YOU"D LIKE TO SAVE THE RAW DATA IS LISTED BELOW
+    name = "U:\GA CMO Outliers\Historical Raw Reports\" & ActiveWorkbook.name
+    
+    Application.DisplayAlerts = False
+    
+    ActiveWorkbook.SaveAs Filename:=name
+    'Application.ActiveWorkbook.Close True
+    
+    Application.DisplayAlerts = True
+End Function
+Function delete_new_report()
+    'THIS FUNCTION DELETES THE FILE STORED IN THE "NEW REPORT" FOLDER
+    On Error Resume Next
+    Kill "U:\GA CMO Outliers\New Report\" & ActiveWorkbook.name
+    
+    On Error GoTo 0
+    
+End Function
+
+Function column_straight()
+    
+    ' this function autofits headers at top of sheet
+    Columns("a:q").EntireColumn.autofit
+    
+End Function
+
+Function add_headers()
+    ' this function adds the necessary headers
+    Dim ws As Worksheet
+    
+    Set ws = ActiveWorkbook.Worksheets(1)
+    
+    Dim counter As Integer
+    
+    counter = -1
+    
+    Do While counter < 20
+    
+        counter = counter + 1
+         
+        'MsgBox ws.Range("a1").Offset(0, counter).Value
+        
+        If LCase(ws.Range("a1").Offset(0, counter).Value) = "primary plan" Then
+        
+            ws.Range("a1").Offset(0, counter + 1).Value = "Status"
+            ws.Range("a1").Offset(0, counter + 2).Value = "DRG Base Rate"
+            ws.Range("a1").Offset(0, counter + 3).Value = "Threshold"
+            ws.Range("a1").Offset(0, counter + 4).Value = "Allowable Cost after CCR reduction"
+            ws.Range("a1").Offset(0, counter + 5).Value = "Excess over Threshold"
+            ws.Range("a1").Offset(0, counter + 6).Value = "Total Projected (DRG + Outlier)"
+            ws.Range("a1").Offset(0, counter + 7).Value = "Total Less Payments Received"
+            ws.Range("a1").Offset(0, counter + 8).Value = "E-mail Sent"
+            
+            Exit Do
+            
+        End If
+        
+    Loop
+    
+    With ActiveWorkbook.Worksheets(1).Rows(1)
+    
+        .RowHeight = 24
+        .WrapText = True
+        
+    End With
+    
+End Function
+
+
+Function import_worksheet()
+    ' this function imports drg information from another workbook and copies it into this workbook
+    Dim ws As Worksheet
+    
+    'BELOW IS THE INFORMATION FOR WHAT THE DRG FILE PATHWAY, FOLDER, AND NAME
+    PathName = "U:\GA CMO Outliers\DRG and Threshold File\"
+    Filename = "V35 Weights and Thresholds.xlsx"
+    TabName = "V35 Weights and Thresholds"
+    
+    If ActiveWorkbook.Worksheets.Count > 1 Then
+    
+        Exit Function
+        
+    End If
+    
+    ControlName = ActiveWorkbook.name
+    Workbooks.Open Filename:=PathName & Filename
+    ActiveWorkbook.Sheets(1).Select
+    ActiveWorkbook.Worksheets(1).copy After:=Workbooks(ControlName).Sheets(1)
+    
+   
+    Workbooks(Filename).Close savechanges:=False
+    
+    ActiveWorkbook.Worksheets(1).Select
+    
+End Function
+
+Function find_drg()
+    'This function finds the starting place to match the drg from the eaw_data and the weights and thresholds data
+    'This function also calls drg_searcher and passes the starting place location and the specific drg, and drg_searcher does the bulk of the analytical work
+    Dim base As Range
+    Dim start As Range
+    Dim compare As Range
+    Dim counter As Long
+    
+    Set start = ActiveWorkbook.Worksheets(1).Range("d2")
+    
+    counter = -1
+        
+        Do While counter < (Worksheets(1).UsedRange.Rows.Count + 1)
+        
+            counter = counter + 1
+            
+            Set compare = start.Offset(counter, 0)
+            
+            'MsgBox Left(start.Offset(counter, 0), 1)
+            
+            If Len(compare.Value) < 3 Then
+            
+                Set base = ActiveWorkbook.Worksheets(2).Range("a6")
+                
+                GoTo skip
+               ' MsgBox base.Value
+                
+            End If
+            
+            If Left(compare, 1) = "1" Then
+            
+                Set base = ActiveWorkbook.Worksheets(2).Range("a92")
+                GoTo skip
+                ' MsgBox base.Value
+                 
+            End If
+            
+            If Left(compare, 1) = "2" Then
+            
+                Set base = ActiveWorkbook.Worksheets(2).Range("a189")
+                GoTo skip
+                'MsgBox base.Value
+            End If
+            
+            If Left(compare, 1) = "3" Then
+            
+                Set base = ActiveWorkbook.Worksheets(2).Range("a286")
+                GoTo skip
+                'MsgBox base.Value
+            End If
+            
+            If Left(compare, 1) = "4" Then
+            
+                Set base = ActiveWorkbook.Worksheets(2).Range("a366")
+                GoTo skip
+                 'MsgBox base.Value
+            End If
+            
+            If Left(compare, 1) = "5" Then
+            
+                Set base = ActiveWorkbook.Worksheets(2).Range("a446")
+                GoTo skip
+                ' MsgBox base.Value
+            End If
+            
+            If Left(compare, 1) = "6" Then
+            
+                Set base = ActiveWorkbook.Worksheets(2).Range("a525")
+                GoTo skip
+                ' MsgBox base.Value
+            End If
+            
+            If Left(compare, 1) = "7" Then
+            
+                Set base = ActiveWorkbook.Worksheets(2).Range("a625")
+                GoTo skip
+                 'MsgBox base.Value
+            End If
+            
+            If Left(compare, 1) = "8" Then
+            
+                Set base = ActiveWorkbook.Worksheets(2).Range("a699")
+                GoTo skip
+                 'MsgBox base.Value
+            End If
+            
+            If Left(compare, 3) = "999" Or Left(compare, 3) = "998" Then
+            
+                GoTo pass
+                ' MsgBox base.Value
+            End If
+            
+            If Left(compare, 1) = "9" Then
+            
+                Set base = ActiveWorkbook.Worksheets(2).Range("a771")
+                
+                ' MsgBox base.Value
+            End If
+skip:
+            result = drg_searcher(base, compare)
+pass:
+        Loop
+        
+End Function
+
+Function drg_searcher(base As Range, compare As Range) 'DOES THE MATH
+    
+    ' this function takes the DRG in the raw data and matches it to the drg found in the weights
+    ' this function is called by find_drg
+    ' once the drgs are matched, this function performs te analysis that leads to the numbers being generated in the raw data template
+    Dim place As Range
+
+    Dim counter As Long
+    
+     'MsgBox compare.Value
+     'MsgBox base.Offset(counter, 0).Value
+     
+    counter = -1
+    
+        'MsgBox compare.Value
+        
+        Do While counter < 101
+        
+        counter = counter + 1
+        
+            Set place = base.Offset(counter, 0)
+            
+            
+            If compare.Value = place.Value Then
+            
+                compare.Offset(0, 7).Value = Format(ActiveWorkbook.Worksheets(2).Range("e2").Value * place.Offset(0, 2).Value, "Standard")
+                'The above populates the DRG base column calculation
+                
+                compare.Offset(0, 8).Value = Format(place.Offset(0, 4).Value, "Standard")
+                ' The above populates the threshold column
+                compare.Offset(0, 9).Value = Format(compare.Offset(0, 3).Value * 0.304, "Standard")
+                ' The above populates the Allowable cost column
+                compare.Offset(0, 10).Value = Format(Abs(compare.Offset(0, 9).Value) - compare.Offset(0, 8).Value, "Standard")
+                ' The above populates the Excess over Threshold column
+                
+                If compare.Offset(0, 10).Value > 0.01 Then
+                
+                    compare.Offset(0, 6).Value = "Outlier"
+                    
+                ElseIf compare.Offset(0, 10).Value < (-0.01) Then
+                
+                    compare.Offset(0, 6).Value = "No Outlier"
+                    
+                End If
+                'the above if statement populates the outlier status column
+                
+                If compare.Offset(0, 10).Value > 0 Then
+                
+                   compare.Offset(0, 11).Value = Format(compare.Offset(0, 7).Value + (compare.Offset(0, 10).Value * 0.893), "Standard")
+                    ' if the excess over threshold is greater than zero then the Total Projected column is calculated using this code
+                Else
+                
+                    compare.Offset(0, 11).Value = Format(compare.Offset(0, 7).Value, "Standard")
+                    ' if the Excess over Threshold is less than zero, then the Total projected is equal to the DRG Base Rate
+                End If
+                
+                compare.Offset(0, 12).Value = Format(Abs(compare.Offset(0, 11).Value) + compare.Offset(0, 4).Value, "Standard")
+                'The above populates the Total Less Payments received
+                'MsgBox "you got me"
+                
+                Exit Function
+                
+            End If
+    
+        Loop
+        
+   
+    
+
+End Function
+
+Function convert_to_number()
+    'this function changes the format of the drgs in the second sheet to a number format
+    
+    ActiveWorkbook.Worksheets(2).Select
+    ActiveWorkbook.Worksheets(2).Columns(1).Select
+    
+    With Selection
+        
+        .NumberFormat = "General"
+        .Value = .Value
+        
+    End With
+    
+End Function
+Function convert_to_number_2()
+    ' this function changes the format of the "Billing DRG Code" column in the first sheet to a number format
+    
+    ActiveWorkbook.Worksheets(1).Select
+    ActiveWorkbook.Worksheets(1).Columns(4).Select
+    
+    With Selection
+        
+        .NumberFormat = "General"
+        .Value = .Value
+        
+    End With
+    
+End Function
+
+
+
+Function date_format(past_name As String)
+' This function formats the date for the function past_file_finder
+    Dim original_day As String
+    Dim original_date As Date
+    Dim revised_day As String
+    Dim revised_date As Date
+    
+    original_day = ActiveWorkbook.name
+    original_date = Format(Mid(original_day, 27, 2) & "/" & Mid(original_day, 30, 2) & "/" & Mid(original_day, 22, 4), "mm/dd/yy")
+    
+    revised_date = DateAdd("ww", -2, original_date)
+    revised_day = revised_date
+    
+    If Mid(revised_day, 2, 1) = "/" Then
+    
+        revised_day = "0" & revised_day
+        'MsgBox revised_day
+        'MsgBox Mid(revised_day, 5, 1)
+        
+    End If
+    
+    'MsgBox Left(revised_day, 3) & "0" & Right(revised_day, 6)
+    If Mid(revised_day, 5, 1) = "/" Then
+    
+        revised_day = Left(revised_day, 3) & "0" & Right(revised_day, 6)
+        'MsgBox revised_day
+        
+    End If
+    
+    past_name = Left(ActiveWorkbook.name, 21) & Right(revised_day, 4) & "-" & Left(revised_day, 2) & "-" & Mid(revised_day, 4, 2)
+    'MsgBox past_name
+    
+    
+End Function
+
+Function past_file_finder()
+' This function finds the previous report run, and pulls data from it
+    Dim ws As Worksheet
+
+    Set ws = ActiveWorkbook.Worksheets.Add(After:=ActiveWorkbook.Worksheets(ActiveWorkbook.Worksheets.Count), Type:=xlWorksheet)
+    With ws
+    
+     .name = "compare"
+     
+    End With
+    
+    Dim past_name As String
+    result = date_format(past_name)
+    result = har_copy(past_name)
+    
+End Function
+Function har_copy(past_name As String)
+    'This function pulls data from the report run two-weeks previous, and then copies it into the new report for comparison
+    Dim old_har As Range
+    Dim old_outlier As Variant
+    
+    Dim new_har As Range
+    Dim new_outlier As Range
+    
+    Dim PathName As String
+    Dim Filename As String
+    Dim TabName As String
+
+    
+    PathName = "U:\GA CMO Outliers\Historical Reports\"
+    Filename = past_name & ".xlsx"
+    TabName = "V35 Weights and Thresholds"
+  
+    If ActiveWorkbook.Worksheets.Count > 3 Then
+    
+        Exit Function
+        
+    End If
+    
+    ControlName = ActiveWorkbook.name
+    Workbooks.Open Filename:=PathName & Filename, UpdateLinks:=0, ReadOnly:=True
+    'ActiveWorkbook.Sheets(1).Copy After:=Workbooks(ControlName).Sheets(2)
+    Set old_har = ActiveWorkbook.Worksheets(1).Columns("a")
+    Set old_outlier = ActiveWorkbook.Worksheets(1).Columns("j")
+    Workbooks(ControlName).Worksheets(1).Activate
+    Set new_har = ActiveWorkbook.Worksheets(3).Columns("a")
+    Set new_outlier = ActiveWorkbook.Worksheets(3).Columns("b")
+    
+    
+    old_har.copy Destination:=new_har
+    old_outlier.copy Destination:=new_outlier
+    
+   
+    Workbooks(Filename).Close savechanges:=False
+    
+    ActiveWorkbook.Worksheets(1).Select
+    
+End Function
+Function flagging_old()
+' This function flags every old DRG flagged as an outlier (those pulled from the previous report
+    Dim start As Range
+    
+    Set start = ActiveWorkbook.Worksheets(3).Range("a2")
+    
+    Dim counter As Long
+    
+    counter = -1
+    
+        Do While counter < 5000
+        
+            counter = counter + 1
+            
+            If IsEmpty(start.Offset(counter, 0)) = False Then
+            
+                start.Offset(counter, 2).Value = "previous"
+            End If
+            
+            If IsEmpty(start.Offset(counter, 0)) = True Then
+            
+                Exit Do
+                
+            End If
+        
+        Loop
+    
+End Function
+
+Function moving_new_hars()
+' This function pulls the current HAR outlier information and copies it to the sheet with the old HAR outliers
+    Dim new_hars As Range
+    Dim new_outliers As Range
+    Dim dest_hars As Range
+    Dim dest_outliers As Range
+    
+    Dim ender As Integer
+    
+    ender = Worksheets(3).UsedRange.Rows.Count + 1
+    
+    Set new_hars = ActiveWorkbook.Worksheets(1).Range("a2:a" & Worksheets(1).UsedRange.Rows.Count)
+    Set new_outliers = ActiveWorkbook.Worksheets(1).Range("j2:j" & Worksheets(1).UsedRange.Rows.Count)
+    
+    Set dest_hars = ActiveWorkbook.Worksheets(3).Range("a" & ender)
+    Set dest_outliers = ActiveWorkbook.Worksheets(3).Range("b" & ender)
+    
+    new_hars.copy Destination:=dest_hars
+    new_outliers.copy Destination:=dest_outliers
+    
+End Function
+
+Function filter_hars()
+' This function filters the old and new HARS for all cases with outlier status, and copies only those cases to a new sheet, while deleting the old one
+    Dim ender As Long
+    
+    ActiveWorkbook.Worksheets(3).Activate
+    ender = ActiveWorkbook.Worksheets(3).UsedRange.Rows.Count
+    
+    ActiveWorkbook.Worksheets(3).Range("B1").Select
+    Selection.AutoFilter
+    
+    ActiveSheet.Range("$A$1:$C$" & ender).AutoFilter Field:=2, Criteria1:="Outlier"
+    Columns("A:B").Select
+    ActiveWorkbook.Worksheets(3).Range("$A$1:$B" & ender).RemoveDuplicates Columns:=Array(1, 2), _
+        Header:=xlYes
+        
+    ender = ActiveWorkbook.Worksheets(3).UsedRange.Rows.Count
+    
+    Range("A1:C" & ender).Select
+    Selection.copy
+    
+    Sheets.Add After:=Sheets(Sheets.Count)
+    ActiveSheet.Paste
+    
+    Application.DisplayAlerts = False
+    ActiveWorkbook.Worksheets(3).Delete
+    Application.DisplayAlerts = True
+    
+    
+End Function
+
+Function new_outlier_locator()
+'this sub identifies those outliers present in the new file, and copies them over to new sheet
+
+    Dim ws As Worksheet
+    
+    Set ws = ActiveWorkbook.Worksheets.Add(After:=ActiveWorkbook.Worksheets(ActiveWorkbook.Worksheets.Count), Type:=xlWorksheet)
+    
+    With ws
+    
+     .name = "New Outlier Cases"
+     
+    End With
+        Dim start As Range
+    Set start = ActiveWorkbook.Worksheets(3).Range("c2")
+    
+    Dim counter As Integer
+    Dim counter2 As Integer
+    
+    counter = -1
+    counter2 = -1
+    Do While counter < 1000
+    
+        counter = counter + 1
+        
+        If IsEmpty(start.Offset(counter, 0)) = False Then
+        
+            GoTo skip
+            
+        End If
+        
+        If IsEmpty(start.Offset(counter, 0)) = True Then
+        
+            counter2 = counter2 + 1
+            ActiveWorkbook.Worksheets(ActiveWorkbook.Worksheets.Count).Range("a2").Offset(counter2, 0).Value = start.Offset(counter, -2).Value
+            
+        End If
+        
+        If IsEmpty(start.Offset(counter, -2)) = True Then
+        
+            Exit Do
+            
+        End If
+     'MsgBox start.Offset(counter, -2).Value
+        
+        
+skip:
+    
+    Loop
+        
+    Application.DisplayAlerts = False
+    ActiveWorkbook.Worksheets(3).Delete
+    Application.DisplayAlerts = True
+    
+End Function
+
+Function new_headers()
+' This sub copies over the headers for the identified outliers onto the new sheet with the newly identified outliers
+    Dim original As Range
+    Dim copy As Range
+    Dim ender As Integer
+    
+ 
+    Set original = ActiveWorkbook.Worksheets(1).Range("a1:p1")
+    Set copy = ActiveWorkbook.Worksheets(3).Range("a1")
+    
+    original.copy Destination:=copy
+    
+End Function
+Function outlier_case_info_generator()
+'This finds those newly identified outliers and copies oer the other header information into the new sheet
+    Dim outlier As Range
+    Dim list As Range
+    
+    Dim counter1 As Integer
+    Dim counter2 As Integer
+    
+    counter1 = -1
+    
+    Set outlier = ActiveWorkbook.Worksheets(3).Range("a2")
+    Set list = ActiveWorkbook.Worksheets(1).Range("a2")
+    
+    Do While counter < 500
+    
+        counter1 = counter1 + 1
+        counter2 = -1
+        
+        If IsEmpty(outlier.Offset(counter1, 0)) = True Then
+        
+            Exit Do
+            
+        End If
+        
+        Do While counter2 < 5000
+        
+            counter2 = counter2 + 1
+            
+            If IsEmpty(list.Offset(counter2, 0)) = True Then
+            
+                Exit Do
+                
+            End If
+            
+            If outlier.Offset(counter1, 0).Value = list.Offset(counter2, 0).Value Then
+            
+                outlier.Offset(counter1, 1).Value = list.Offset(counter2, 1)
+                outlier.Offset(counter1, 2).Value = list.Offset(counter2, 2)
+                outlier.Offset(counter1, 3).Value = list.Offset(counter2, 3)
+                outlier.Offset(counter1, 4).Value = Format(list.Offset(counter2, 4), "mm/dd/yyyy")
+                outlier.Offset(counter1, 5).Value = Format(list.Offset(counter2, 5), "mm/dd/yyyy")
+                outlier.Offset(counter1, 6).Value = Format(list.Offset(counter2, 6), "Currency")
+                outlier.Offset(counter1, 7).Value = Format(list.Offset(counter2, 7), "Currency")
+                outlier.Offset(counter1, 8).Value = list.Offset(counter2, 8)
+                outlier.Offset(counter1, 9).Value = list.Offset(counter2, 9)
+                outlier.Offset(counter1, 10).Value = Format(list.Offset(counter2, 10), "Currency")
+                outlier.Offset(counter1, 11).Value = Format(list.Offset(counter2, 11), "Currency")
+                outlier.Offset(counter1, 12).Value = Format(list.Offset(counter2, 12), "Currency")
+                outlier.Offset(counter1, 13).Value = Format(list.Offset(counter2, 13), "Currency")
+                outlier.Offset(counter1, 14).Value = Format(list.Offset(counter2, 14), "Currency")
+                outlier.Offset(counter1, 15).Value = Format(list.Offset(counter2, 15), "Currency")
+                
+            End If
+            
+        Loop
+        
+    Loop
+    
+     ActiveWorkbook.Worksheets(3).Rows(1).Font.Bold = True
+     ActiveWorkbook.Worksheets(3).Rows(1).WrapText = True
+     ActiveWorkbook.Worksheets(3).Columns("a:p").ColumnWidth = 12
+     ActiveWorkbook.Worksheets(3).Columns("a:p").EntireColumn.autofit
+     ActiveWorkbook.Worksheets(2).Columns("a").ColumnWidth = 10
+    
+     
+End Function
+Function table_creator()
+'This function reformats the newly identified outlier cases into a table
+    Dim ws As Worksheet '
+    Dim ender As Integer
+    
+    Set ws = ActiveWorkbook.Worksheets(3)
+    
+    ender = Worksheets(3).UsedRange.Rows.Count
+    
+    ws.ListObjects.Add(xlSrcRange, ws.Range("a1:p" & ender), , xlYes).name = "table_name"
+    ws.ListObjects("table_name").TableStyle = "TableStyleLight8"
+    
+
+
+    
+End Function
+
+Function Mail_Selection_Range_Outlook_Body()
+' this sub wil take the table with the outlier cases, and send them as an e-mail
+'this sub will call another function that formats the sent table into a correct html format
+    Dim rng As Range
+    Dim OutApp As Object
+    Dim OutMail As Object
+    Dim ender As Integer
+
+    Set rng = Nothing
+    ender = Worksheets(3).UsedRange.Rows.Count
+    
+    On Error Resume Next
+    
+  
+    Set rng = ActiveWorkbook.Worksheets(3).Range("a1:p" & ender).SpecialCells(xlCellTypeVisible)
+    On Error GoTo 0
+
+    If rng Is Nothing Then
+        MsgBox "The selection is not a range or the sheet is protected" & _
+               vbNewLine & "please correct and try again.", vbOKOnly
+        Exit Function
+    End If
+
+    With Application
+        .EnableEvents = False
+        .ScreenUpdating = False
+    End With
+
+    Set OutApp = CreateObject("Outlook.Application")
+    Set OutMail = OutApp.CreateItem(0)
+
+    On Error Resume Next
+    
+    If IsEmpty(ActiveWorkbook.Worksheets(3).Range("a2")) = True Then
+    
+        With OutMail
+            .To = "manuel.cruz@erlanger.org;lakisha.carter@erlanger.org;brandon.may@erlanger.org;gigi.crocker@erlanger.org;jill.forgey@erlanger.org;andrea.halstead@erlanger.org;daniel.hawkins@erlanger.org;jeanette.tipton@erlanger.org;pam.varnell@erlanger.org;christopher.spady@erlanger.org;jana.letner@erlanger.org"
+            .CC = "james.mason@erlanger.org"
+            .BCC = ""
+            .Subject = "GA CMO Outliers"
+            .HTMLBody = "There are no newly identified outliers this period."
+            .Send   'or use .Display
+        End With
+        
+        GoTo nxt
+        
+    End If
+    
+    With OutMail
+    
+        .To = "manuel.cruz@erlanger.org;lakisha.carter@erlanger.org;brandon.may@erlanger.org;gigi.crocker@erlanger.org;jill.forgey@erlanger.org;andrea.halstead@erlanger.org;daniel.hawkins@erlanger.org;jeanette.tipton@erlanger.org;pam.varnell@erlanger.org;christopher.spady@erlanger.org;jana.letner@erlanger.org"
+        .CC = "james.mason@erlanger.org"
+        .BCC = ""
+        .Subject = "GA CMO Outliers"
+        .HTMLBody = "Below are the newly identified outliers" & RangetoHTML(rng)
+        .Send   'or use .Display
+        
+    End With
+nxt:
+    On Error GoTo 0
+
+    With Application
+        .EnableEvents = True
+        .ScreenUpdating = True
+    End With
+
+    Set OutMail = Nothing
+    Set OutApp = Nothing
+End Function
+
+
+Function RangetoHTML(rng As Range)
+' This function formats the table into an HTML readable format
+    Dim fso As Object
+    Dim ts As Object
+    Dim TempFile As String
+    Dim TempWB As Workbook
+
+    TempFile = Environ$("temp") & "\" & Format(Now, "dd-mm-yy h-mm-ss") & ".htm"
+
+    'Copy the range and create a new workbook to past the data in
+    rng.copy
+    Set TempWB = Workbooks.Add(1)
+    With TempWB.Sheets(1)
+        .Cells(1).PasteSpecial Paste:=8
+        .Cells(1).PasteSpecial xlPasteValues, , False, False
+        .Cells(1).PasteSpecial xlPasteFormats, , False, False
+        .Cells(1).Select
+        Application.CutCopyMode = False
+        On Error Resume Next
+        .DrawingObjects.Visible = True
+        .DrawingObjects.Delete
+        On Error GoTo 0
+    End With
+
+    'Publish the sheet to a htm file
+    With TempWB.PublishObjects.Add( _
+         SourceType:=xlSourceRange, _
+         Filename:=TempFile, _
+         Sheet:=TempWB.Sheets(1).name, _
+         Source:=TempWB.Sheets(1).UsedRange.Address, _
+         HtmlType:=xlHtmlStatic)
+        .Publish (True)
+    End With
+
+    'Read all data from the htm file into RangetoHTML
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    Set ts = fso.GetFile(TempFile).OpenAsTextStream(1, -2)
+    RangetoHTML = ts.readall
+    ts.Close
+    RangetoHTML = Replace(RangetoHTML, "align=center x:publishsource=", _
+                          "align=left x:publishsource=")
+
+    'Close TempWB
+    TempWB.Close savechanges:=False
+
+    'Delete the htm file we used in this function
+    Kill TempFile
+
+    Set ts = Nothing
+    Set fso = Nothing
+    Set TempWB = Nothing
+End Function
+
+
+
+Function outlook_opener(opener As Boolean)
+'this funtion checks to see if the outlook application is open or not, and if its not it open it
+    
+    Dim oOutlook As Object
+
+    On Error Resume Next
+    
+        Set oOutlook = GetObject(, "Outlook.Application")
+        
+    On Error GoTo 0
+
+        If oOutlook Is Nothing Then
+        
+            opener = False
+            
+            Shell ("OUTLOOK")
+            
+            GoTo skip
+        
+        Else
+        
+            opener = True
+            
+        End If
+skip:
+
+End Function
+
+Function outlook_closer(opener As Boolean)
+'this sub check to see if the outlook app was originally open, and if it was not it closes outlook
+    
+    Dim OL As Object
+    
+    newhour = Hour(Now())
+    newminute = Minute(Now())
+    newsecond = Second(Now() + 5)
+    wait_time = TimeSerial(newhour, newminute, newsecond)
+    
+    If opener = False Then
+    
+        Set OL = GetObject(, "Outlook.Application")
+        
+        Application.Wait DateAdd("s", 2, Now)
+        
+        
+        OL.Quit
+        
+    
+    End If
+        
+End Function
+
+Function saving_report()
+
+    Dim name As String
+    
+    On Error Resume Next
+    
+    name = "U:\GA CMO Outliers\Historical reports\" & Left(ActiveWorkbook.name, (Len(ActiveWorkbook.name) - 4)) & ".xlsx"
+    
+    Application.DisplayAlerts = False
+    
+    ActiveWorkbook.SaveAs Filename:=name, FileFormat:=xlWorkbookDefault
+    Application.ActiveWorkbook.Close True
+    
+    Application.DisplayAlerts = True
+    
+End Function
+
+
+
+
+
+
+
+
+

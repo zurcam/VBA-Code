@@ -1,0 +1,29 @@
+Function name_filler()
+
+' This code fills in the first and last name for patient encounters in a troublesome file for Jennifer Funk
+
+    Dim original As Range
+    Dim start As Range
+    
+    Dim counter As Long
+    
+    Set original = ActiveWorkbook.Worksheets(ActiveWorkbook.ActiveSheet.Index).Range("a5") ' <--------- This is the starting range, where the last names start
+    
+    counter = -1
+
+    Do While counter < ActiveWorkbook.Worksheets(ActiveWorkbook.ActiveSheet.Index).UsedRange.Rows.Count
+    
+        counter = counter + 1
+        
+        Set start = original.Offset(counter, 0)
+        
+        If (start.Value = vbNullString) And (start.Offset(0, 13).Value <> vbNullString) Then '<--------- This line checks to see if the column 13 cells to the right of the last name
+                                                                                             ' (the HAR column) is not empty.
+            start.Value = start.Offset(-1, 0).Value
+            start.Offset(0, 1).Value = start.Offset(-1, 1).Value
+            
+        End If
+        
+    Loop
+        
+End Function

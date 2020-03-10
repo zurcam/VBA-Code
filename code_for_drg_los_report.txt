@@ -1,0 +1,818 @@
+'""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+'--------------------------------------------------------------------------------- DRG LOS REPORT GENERATOR ----------------------------------------------------------------------------------------"
+'____________________________________________________________________________________________________________________________________________________________________________________________________'
+'---- NOTES FOR THE CODE ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+'____________________________________________________________________________________________________________________________________________________________________________________________________
+' >>>>>>>>>> This code takes in a SQL Query created by John Benefield, and then creates a report that communicates the Length of Stay (LOS) information for three DRGs. The code first takes in the data, then
+' writes the report on a second sheet of a tab. It then saves the report into the address U:\DRG LOS Reports\Historical Reports.
+'
+'>>>>>>>>>>> When the code is run, IT WILL DELETE ALL SHEETS IN THE WORKBOOK THAT DO NOT CONTAIN THE RAW DATA. If you are looking to do analysis/make pivot tables, make them AFTER you run the code
+'
+'>>>>>>>>>>> If you only want to run the code without saving the data, comment out the last two called functions (functions saving_report and delete_new_report) in the main function
+'called run_this_function. To comment out a line, simply place a single tick mark (like this ' ) in front of the code
+
+
+Function run_this_function()
+    '^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    '||||||||||||||||||||||||||||||||
+    'RUN THE ABOVE FUNCTION TO START THE CODE. To run, click anywhere within the function run_this_function and then press the play button (or F5)
+    '_____________________________________________________________________________________________________________________________________________
+    
+    Dim workbook_name As String
+    
+    workbook_name = ActiveWorkbook.name
+    
+    Dim discharge_rng As Range
+    Dim los_rng As Range
+    Dim drg_rng As Range
+    
+    Dim start_week_num As Integer
+    Dim end_week_num As Integer
+    
+    Dim week_range_array As Variant
+    Dim week_num_list As Variant
+    
+    Dim drg_counted As Variant
+    Dim los_counted As Variant
+    
+    Dim drg_counter As Long
+    Dim los_counter As Long
+    
+    result = sheet_formatter
+    result = activate_second_sheet()
+    result = populate_base_info()
+    result = locate_starting_places(discharge_rng, los_rng, drg_rng)
+    result = find_start_week(discharge_rng, start_week_num, end_week_num)
+    result = generate_week_range_array(start_week_num, end_week_num, week_range_array)
+    result = generate_week_num_list(start_week_num, end_week_num, week_num_list)
+    result = get_numbers_by_week(los_rng, drg_rng, discharge_rng, drg_counted, los_counted, drg_counter, los_counter, week_range_array, week_num_list)
+    result = add_long_line(week_range_array)
+    result = add_total_values(week_range_array)
+    '__________________________________________________________________________________
+    ' IF YOU DO NOT WANT TO SAVE IN HISTORICAL REPORTS, COMMENT OUT TWO FUNCTIONS BELOW
+    '__________________________________________________________________________________
+    
+    result = saving_report()
+    result = delete_new_report(workbook_name)
+    
+End Function
+Function sheet_formatter()
+
+'This function formats the sheets in the workbook, by making sure only one second sheet exists, renaming data in it as raw_data, and deleting any other sheets
+    
+    ActiveWorkbook.Worksheets(1).name = "raw_data"
+    
+    If ActiveWorkbook.Worksheets(1).name = "raw_data" Then
+    
+        Do While ActiveWorkbook.Worksheets.Count > 1
+        
+        
+            Application.DisplayAlerts = False
+            
+            With ActiveWorkbook
+            
+                .Worksheets(.Worksheets.Count).Delete
+                
+            End With
+            
+        Loop
+    
+    End If
+    
+    If ActiveWorkbook.Worksheets(1).name <> "raw_data" Then
+    
+        Do While ActiveWorkbook.Worksheets(1).name <> "raw_data"
+        
+        
+            Application.DisplayAlerts = False
+            
+            With ActiveWorkbook
+            
+                .Worksheets(1).Delete
+                
+            End With
+        
+        Loop
+    
+    End If
+    Dim sheet As Worksheet
+    Set sheet = ActiveWorkbook.Sheets.Add(After:=ActiveWorkbook.Worksheets(ActiveWorkbook.Worksheets.Count))
+    
+Application.DisplayAlerts = True
+        
+End Function
+Function activate_second_sheet()
+
+    ' This function activate the second sheet in the workbook
+
+    ActiveWorkbook.Worksheets(2).Activate
+    
+End Function
+Function add_total_values(week_range_array As Variant)
+
+    ' This function adds and formats the total value saved
+    
+    Dim value_range As Range
+    
+    Dim counter As Integer
+    
+    Dim total_value As Long
+    
+    Set value_range = ActiveWorkbook.Worksheets(2).Range("e12")
+    Set title_range = ActiveWorkbook.Worksheets(2).Range("e4")
+    ActiveWorkbook.Worksheets(2).name = "report"
+    title_range.Offset(0, CInt(UBound(week_range_array)) + 1).Select
+    total_value = 0
+    
+    With Selection
+    
+        .HorizontalAlignment = xlCenter
+        .VerticalAlignment = xlBottom
+        .WrapText = True
+        .Orientation = 0
+        .AddIndent = False
+        .IndentLevel = 0
+        .ShrinkToFit = False
+        .ReadingOrder = xlContext
+        .MergeCells = False
+        .Font.Bold = True
+        .Font.Underline = False
+        .ColumnWidth = 15
+        .Value = "Net expense savings to date"
+        
+    End With
+    
+    title_range.Offset(25, -4).Select
+    
+    With Selection
+    
+        .HorizontalAlignment = xlLeft
+        .VerticalAlignment = xlBottom
+        .WrapText = False
+        .Value = "Total DRG savings by reducing LOS"
+        
+    End With
+    
+    counter = -7
+    
+    For Sum = 0 To 2
+        
+        counter = counter + 7
+        Dim first_address As String
+        Dim second_address As String
+        Dim address As String
+        
+        first_address = CStr(value_range.Offset(counter, 0).address)
+        second_address = CStr(value_range.Offset(counter, CInt(UBound(week_range_array))).address)
+        address = first_address & ":" & second_address
+       
+        'MsgBox address
+        
+        Dim row_total As Long
+        
+        row_total = 0
+        
+        For i = 0 To UBound(week_range_array)
+        
+            row_total = row_total + value_range.Offset(counter, CInt(i)).Value
+            'MsgBox value_range.Offset(counter, CInt(i)).Value
+            
+        Next i
+        
+        value_range.Offset(counter, CInt(UBound(week_range_array)) + 1).Value = row_total
+        total_value = total_value + row_total
+        
+        value_range.Offset(counter, CInt(UBound(week_range_array)) + 1).Borders(xlEdgeTop).LineStyle = xlContinuous
+        value_range.Offset(counter, CInt(UBound(week_range_array)) + 1).Borders(xlEdgeBottom).LineStyle = xlContinuous
+        
+        value_range.Offset(counter, CInt(UBound(week_range_array)) + 1).NumberFormat = "_($* #,##0_);_($* (#,##0);_($* ""-""??_);_(@_)"
+        
+    Next Sum
+
+    title_range.Offset(25, CInt(UBound(week_range_array)) + 1).Value = total_value
+    title_range.Offset(25, CInt(UBound(week_range_array)) + 1).NumberFormat = "_($* #,##0_);_($* (#,##0);_($* ""-""??_);_(@_)"
+    title_range.Offset(25, CInt(UBound(week_range_array)) + 1).Borders(xlEdgeTop).LineStyle = xlContinuous
+    title_range.Offset(25, CInt(UBound(week_range_array)) + 1).Borders(xlEdgeBottom).LineStyle = xlContinuous
+    
+End Function
+Function get_numbers_by_week(los_rng As Range, drg_rng As Range, discharge_rng As Range, drg_counted As Variant, los_counted As Variant, drg_counter As Long, los_counter As Long, week_range_array As Variant, week_num_list As Variant)
+    
+    ' This function finds the number of week bands that exists, and passes that to another function that analyzes and counts the data
+
+    Dim week_num_iter As Integer
+    
+    For week_num = 0 To UBound(week_num_list)
+    
+        week_num_iter = week_num
+        
+        result = drg_and_los_counter(drg_counted, los_counted, drg_counter, los_counter, week_num_list, week_num_iter, los_rng, drg_rng, discharge_rng, week_range_array)
+        
+    Next week_num
+    
+End Function
+
+Function drg_and_los_counter(drg_counted As Variant, los_counted As Variant, drg_counter As Long, los_counter As Long, week_num_list As Variant, week_num_iter As Integer, los_rng As Range, drg_rng As Range, discharge_rng As Range, week_range_array As Variant)
+
+    ' This function counts the DRG and LOS information by DRG and week band, and calls the function that pastes the information
+    
+    Dim drg_list As Variant
+    
+    Dim end_point As Long
+    
+    Dim counter As Long
+    
+    
+    drg_list = Array("291", "193", "682")
+    drg_counted = Array("", "", "")
+    los_counted = Array("", "", "")
+    
+    Set los_rng = ActiveWorkbook.Worksheets(1).Range("l2")
+    Set drg_rng = ActiveWorkbook.Worksheets(1).Range("n2")
+    Set discharge_rng = ActiveWorkbook.Worksheets(1).Range("i2")
+    
+    end_point = ActiveWorkbook.Worksheets(1).UsedRange.Rows.Count - 2
+    
+    
+    For drg = 0 To UBound(drg_list)
+    
+        drg_counter = 0
+        los_counter = 0
+        counter = -1
+        
+        Do While counter < end_point
+        
+            counter = counter + 1
+            
+            If CStr(WorksheetFunction.WeekNum(discharge_rng.Offset(counter, 0).Value)) = CStr(week_num_list(week_num_iter)) Then
+            
+                If drg_list(drg) = CStr(drg_rng.Offset(counter, 0).Value) Then
+                
+                    drg_counter = drg_counter + 1
+                    los_counter = los_counter + los_rng.Offset(counter, 0).Value
+                
+                End If
+                    
+            End If
+            
+        Loop
+        
+        If drg_counter > 0 Then
+        
+            drg_counted(drg) = drg_counter
+            los_counted(drg) = Round(los_counter / drg_counter, 2)
+            
+        End If
+        
+        If drg_counter = 0 Then
+        
+            drg_counted(drg) = 0
+            los_counted(drg) = ""
+            
+        End If
+        
+    Next drg
+    
+    result = paste_week_information(drg_counted, los_counted, week_num_iter, week_range_array)
+    
+End Function
+Function paste_week_information(drg_counted As Variant, los_counted As Variant, week_num_iter As Integer, week_range_array As Variant)
+
+    'This function pastes the DRG and LOS information into the report sheet
+    
+    Dim start As Range
+    Dim baseline As Range
+    Dim counter As Long
+    
+    Set start = ActiveWorkbook.Worksheets(2).Range("e8")
+    
+    counter = -7
+    
+    For place = 0 To UBound(drg_counted)
+        
+        counter = counter + 7
+        
+        start.Offset(counter, week_num_iter).Value = los_counted(place)
+        start.Offset(counter, week_num_iter).Interior.Color = 14348258
+        
+        
+        If drg_counted(place) <> 0 Then
+        
+            start.Offset(counter + 1, week_num_iter).Value = start.Offset(counter, week_num_iter).Value - start.Offset(counter, -1).Value
+            
+            If start.Offset(counter, week_num_iter - 1).Value = vbNullString Then
+            
+                Dim find As Range
+                Dim iter As Integer
+                
+                Set find = start.Offset(counter, week_num_iter - 1)
+                
+                iter = 0
+                
+                Do While find.Offset(0, iter) = vbNullString
+                    
+                    iter = iter - 1
+                    If find.Offset(0, iter - 1).Value <> vbNullString Then
+                    
+                        start.Offset(counter + 1, week_num_iter).Value = start.Offset(counter, week_num_iter).Value - start.Offset(counter, -1).Value
+                        
+                        Exit Do
+                        
+                    End If
+                    
+                Loop
+                
+            End If
+                                    
+        End If
+        
+        start.Offset(counter + 2, week_num_iter).Value = start.Offset(counter + 2, -1).Value
+        
+        
+        start.Offset(counter + 3, week_num_iter).Value = drg_counted(place)
+        start.Offset(counter + 3, week_num_iter).Interior.Color = 14348258
+        
+        
+        'If start.Offset(counter + 1, week_num_iter).Value < 0 Then
+        
+            start.Offset(counter + 4, week_num_iter).Value = (-1) * start.Offset(counter + 1, week_num_iter).Value * 500 * start.Offset(counter + 3, week_num_iter).Value
+        'Else
+            'start.Offset(counter + 4, week_num_iter).Value = 0
+        'End If
+        
+        start.Offset(counter + 4, week_num_iter).Borders(xlEdgeTop).LineStyle = xlContinuous
+        start.Offset(counter + 4, week_num_iter).Borders(xlEdgeBottom).LineStyle = xlContinuous
+        
+        start.Offset(counter + 4, week_num_iter).NumberFormat = "_($* #,##0_);_($* (#,##0);_($* ""-""??_);_(@_)"
+        
+    Next place
+    
+End Function
+
+Function generate_week_num_list(start_week_num As Integer, end_week_num As Integer, week_num_list As Variant)
+    
+    'This function finds the different week bands in the year that are present in the data
+    
+    Dim counter As Integer
+    
+    Dim spread As Integer
+    
+    week_num_list = Array()
+    
+    counter = -1
+    
+    
+    
+    For week = (start_week_num) To (end_week_num)
+    
+        counter = counter + 1
+        
+        If week <= end_week_num Then
+        
+            ReDim Preserve week_num_list(counter)
+            
+            week_num_list(counter) = week
+    
+        End If
+        
+    Next week
+    
+End Function
+Function generate_week_range_array(start_week_num As Integer, end_week_num As Integer, week_range_array As Variant)
+
+    'This function saves the different week bands start and end dates into a string, and then puts that string into an array
+
+    Dim first_part As String
+    Dim second_part As String
+    
+    Dim full_part As String
+    
+    Dim counter As Integer
+    
+    week_range_array = Array()
+    
+    counter = -1
+    
+        For week = (start_week_num - 1) To (end_week_num - 1)
+        
+            counter = counter + 1
+            first_part = CStr(DateAdd("ww", week - 1, DateSerial(2020, 1, 5)))
+            second_part = CStr(DateAdd("ww", week, DateSerial(2020, 1, 4)))
+            
+            full_part = first_part & " - " & second_part
+            
+            If week >= (start_week_num - 1) Then
+            
+                ReDim Preserve week_range_array(counter)
+                week_range_array(counter) = full_part
+                
+            End If
+            
+        Next week
+    
+    result = populate_week_headings(week_range_array)
+     
+End Function
+Function populate_week_headings(week_range_array As Variant)
+
+    'This function adds the week band date ranges as headings to the report
+    
+    Dim start As Range
+    
+    Set start = ActiveWorkbook.Worksheets(2).Range("e4")
+    
+    For i = 0 To UBound(week_range_array)
+    
+        start.Offset(0, CInt(i)).Select
+        
+        With Selection
+        
+            .HorizontalAlignment = xlCenter
+            .WrapText = True
+            .Orientation = 0
+            .AddIndent = False
+            .IndentLevel = 0
+            .ShrinkToFit = False
+            .ReadingOrder = xlContext
+            .MergeCells = False
+            .Font.Bold = False
+            .Font.Color = RGB(255, 0, 0)
+            .Font.Underline = False
+            .ColumnWidth = 14
+            .Value = week_range_array(i)
+            
+        End With
+    
+    Next i
+    
+End Function
+
+Function find_start_week(discharge_rng As Range, start_week_num As Integer, end_week_num)
+    
+    
+    'This function finds the first week band present within the data
+    
+    Dim end_point As Long
+    Dim counter As Long
+    Dim dis_rng As Range
+    
+    Set dis_rng = ActiveWorkbook.Worksheets(1).Range("i2")
+    end_point = ActiveWorkbook.Worksheets(1).UsedRange.Rows.Count - 2
+    
+    counter = -1
+    
+    Do While counter < end_point
+    
+        counter = counter + 1
+        
+        If counter = 0 Then
+        
+            start_week_num = WorksheetFunction.WeekNum(dis_rng.Offset(counter, 0).Value)
+            end_week_num = WorksheetFunction.WeekNum(dis_rng.Offset(counter, 0).Value)
+        End If
+        
+        If counter > 0 Then
+                
+            If WorksheetFunction.WeekNum(dis_rng.Offset(counter, 0).Value) < start_week_num Then
+        
+                start_week_num = WorksheetFunction.WeekNum(dis_rng.Offset(counter, 0).Value)
+                
+            End If
+            
+            If WorksheetFunction.WeekNum(dis_rng.Offset(counter, 0).Value) > end_week_num Then
+        
+                end_week_num = WorksheetFunction.WeekNum(dis_rng.Offset(counter, 0).Value)
+                
+            End If
+            
+        End If
+        
+    Loop
+    
+End Function
+
+Function locate_starting_places(discharge_rng As Range, los_rng As Range, drg_rng As Range)
+    
+    'This function calls functions that locate the start of columns with discharge/DRG/LOS information
+    
+    result = find_discharge_col(discharge_rng)
+    result = find_los_col(los_rng)
+    result = find_drg_col(drg_rng)
+    
+    
+End Function
+Function find_discharge_col(discharge_rng As Range)
+
+    'Function that finds the discharge_date column in the data
+    
+    Dim start As Range
+    Dim counter As Integer
+    
+    Set start = ActiveWorkbook.Worksheets(1).Range("a1")
+    
+    counter = 0
+    
+    Do While start.Offset(0, counter).Value <> vbNullString
+    
+        If InStr(1, LCase(start.Offset(0, counter).Value), "discharge") <> 0 Then
+        
+            Set discharge_rng = start.Offset(1, counter)
+            
+            Exit Do
+            
+        End If
+        
+        counter = counter + 1
+        
+    Loop
+    
+End Function
+Function find_los_col(los_rng As Range)
+
+
+    'Function that finds the LOS column in the data
+    
+    Dim start As Range
+    Dim counter As Integer
+    
+    Set start = ActiveWorkbook.Worksheets(1).Range("a1")
+    
+    counter = 0
+    
+    Do While start.Offset(0, counter).Value <> vbNullString
+    
+        If InStr(1, LCase(start.Offset(0, counter).Value), "los") <> 0 Then
+        
+            Set los_rng = start.Offset(1, counter)
+            
+            Exit Do
+            
+        End If
+        
+        counter = counter + 1
+        
+    Loop
+    
+End Function
+Function find_drg_col(drg_rng As Range)
+
+    'Function that finds the DRG column in the data
+
+    Dim start As Range
+    Dim counter As Integer
+    
+    Set start = ActiveWorkbook.Worksheets(1).Range("a1")
+    
+    counter = 0
+    
+    Do While start.Offset(0, counter).Value <> vbNullString
+    
+        If InStr(1, LCase(start.Offset(0, counter).Value), "drg") <> 0 Then
+            
+            Set drg_rng = start.Offset(1, counter)
+            
+            Exit Do
+            
+        End If
+        
+        counter = counter + 1
+        
+    Loop
+    
+End Function
+
+Function populate_base_info()
+
+    'Function that adds the base info for the report
+
+    Dim start As Range
+    
+    Dim cat_list As Variant
+    Dim drg_description_list As Variant
+    
+    
+    
+    Set start = ActiveWorkbook.Worksheets(2).Range("a7")
+    
+    
+    cat_list = Array("LOS", "LOS Change", "Expected LOS", "Cases", "Net LOS chg/opprty")
+    drg_description_list = Array("DRG 291 -HEART FAILURE (Start:      )", "DRG 193 - PNEUMONIA  (Start:           )", "DRG 682 - RENAL FAILURE  (Start:            )")
+
+    ActiveWorkbook.Worksheets(2).Range("a2").Select
+    
+
+    With Selection
+    
+        .HorizontalAlignment = xlLeft
+        .VerticalAlignment = xlBottom
+        .WrapText = False
+        .Orientation = 0
+        .AddIndent = False
+        .IndentLevel = 0
+        .ShrinkToFit = False
+        .ReadingOrder = xlContext
+        .MergeCells = False
+        .Font.Bold = True
+        .Font.Underline = False
+        .RowHeight = 15.75
+        .Value = "SAVINGS - DRG TASK FORCE"
+        
+    End With
+    
+    ActiveWorkbook.Worksheets(2).Range("a4").Select
+    
+    With Selection
+    
+        .HorizontalAlignment = xlLeft
+        .VerticalAlignment = xlBottom
+        .WrapText = False
+        .Orientation = 0
+        .AddIndent = False
+        .IndentLevel = 0
+        .ShrinkToFit = False
+        .ReadingOrder = xlContext
+        .MergeCells = False
+        .Font.Bold = False
+        .Font.Color = RGB(255, 0, 0)
+        .Font.Underline = False
+        .RowHeight = 45
+        .Value = "MEASURE DATES:"
+        
+    End With
+    
+    For place = 0 To 2
+    
+        start.Offset(CInt(place) * 7, 0).Select
+        
+        With Selection
+        
+            .HorizontalAlignment = xlLeft
+            .VerticalAlignment = xlBottom
+            .WrapText = False
+            .Value = drg_description_list(place)
+            
+        End With
+        
+        For mini_place = 0 To UBound(cat_list)
+        
+            start.Offset((CInt(place) * 7) + 1 + CInt(mini_place), 1).Select
+        
+            With Selection
+        
+                .HorizontalAlignment = xlLeft
+                .VerticalAlignment = xlBottom
+                .WrapText = False
+                .Value = cat_list(mini_place)
+                
+            End With
+            
+        Next mini_place
+        
+    Next place
+    
+        ActiveWorkbook.Worksheets(2).Range("D8:V26").Select
+        
+    With Selection
+    
+        .HorizontalAlignment = xlGeneral
+        .VerticalAlignment = xlBottom
+        .WrapText = False
+        .Orientation = 0
+        .AddIndent = False
+        .IndentLevel = 0
+        .ShrinkToFit = False
+        .ReadingOrder = xlContext
+        .MergeCells = False
+        
+    End With
+        
+    ActiveWorkbook.Worksheets(2).Range("d4").Select
+    
+    With Selection
+    
+        .HorizontalAlignment = xlLeft
+        .VerticalAlignment = xlBottom
+        .WrapText = False
+        .Orientation = 0
+        .AddIndent = False
+        .IndentLevel = 0
+        .ShrinkToFit = False
+        .ReadingOrder = xlContext
+        .MergeCells = False
+        .Font.Bold = False
+        .Font.Color = RGB(255, 0, 0)
+        .Font.Underline = False
+        .RowHeight = 45
+        .Value = "Baseline"
+        
+    End With
+    
+    ActiveWorkbook.Worksheets(2).Range("d5").Select
+    
+    With Selection
+    
+        .HorizontalAlignment = xlLeft
+        .VerticalAlignment = xlBottom
+        .WrapText = False
+        .Orientation = 0
+        .AddIndent = False
+        .IndentLevel = 0
+        .ShrinkToFit = False
+        .ReadingOrder = xlContext
+        .MergeCells = False
+        .Font.Bold = False
+        .Font.Underline = False
+        .ColumnWidth = 12.86
+        .Value = "FYE 06/30/2019"
+        
+    End With
+    
+    result = populate_base_numbers
+End Function
+Function populate_base_numbers()
+
+    'Function that adds base numbers to report sheet
+    
+    Dim list_object, list
+
+    Set list_object = CreateObject("Scripting.Dictionary")
+    
+    list_object.Add "drg_291", Array("6.22", "", "4.9", "407")
+    list_object.Add "drg_193", Array("6.66", "", "4.8", "173")
+    list_object.Add "drg_682", Array("8.42", "", "5.2", "170")
+
+    Dim start As Range
+    Dim counter As Integer
+    
+    Set start = ActiveWorkbook.Worksheets(2).Range("d8")
+    
+   
+    counter = -7
+    
+    For Each list In list_object.items
+    
+        counter = 7 + counter
+        
+        For place = 0 To UBound(list)
+        
+            start.Offset(counter + CInt(place), 0).Value = list(place)
+            
+        Next place
+        
+    Next list
+        
+End Function
+Function add_long_line(week_range_array As Variant)
+
+    'Function that adds a long border line to end of reported data
+
+    Dim long_range As Range
+    
+    Set long_range = ActiveWorkbook.Worksheets(2).Range("e4:e30")
+    
+    long_range.Offset(0, CInt(UBound(week_range_array)) + 1).Borders(xlEdgeLeft).LineStyle = xlContinuous
+    
+End Function
+
+Function saving_report()
+
+    'Function that saves report to U:\DRG LOS Reports\Historical Reports
+
+    Dim name As String
+    
+    On Error Resume Next
+    
+
+    now_string = CStr(Now())
+    now_string = Replace(now_string, "/", "_")
+    now_string = Replace(now_string, " ", "_")
+    now_string = Replace(now_string, ":", "-")
+    name_string = "Report Run - " & now_string
+    name = "U:\DRG LOS Reports\Historical Reports\" & name_string & ".xlsx"
+    
+    Application.DisplayAlerts = False
+    
+    ActiveWorkbook.SaveAs Filename:=name, FileFormat:=xlWorkbookDefault
+    'Application.ActiveWorkbook.Close True
+    
+    Application.DisplayAlerts = True
+    
+End Function
+
+Function delete_new_report(workbook_name As String)
+
+    'Function that deletes report in U:\DRG LOS Reports\New Reports
+    
+    'THIS FUNCTION DELETES THE FILE STORED IN THE "NEW REPORT" FOLDER
+    On Error Resume Next
+    Kill "U:\DRG LOS Reports\New Reports\" & workbook_name
+    
+    On Error GoTo 0
+    
+End Function
+
+
+
+
+
+
+

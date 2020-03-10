@@ -1,0 +1,128 @@
+Function concatenate_info()
+'-----------------------------------------------------------------------------------------------------------------------------------------
+'RUN THIS FUNCTION AT THE TOP
+'
+' This function takes in date and time information, and then converts them into query ready syntax as a column at the very end of the data.
+
+'__________________________________________________________________________________________________________________________________________
+    Dim start_date As Range
+    Dim start_mrn As Range
+    Dim counter As Long
+    Dim ender As Integer
+    
+    Dim main_string As String
+    
+    find_adm_date start_date
+    find_mrn start_mrn
+    
+    Set start = ActiveSheet.Range("a6") '<---------------- This is the first cell that contains a Column heading. Change if necessary
+    
+    counter = -1
+    
+    find_last_column ender
+    
+    'MsgBox ender
+    
+    Do While counter < ActiveWorkbook.Worksheets(ActiveWorkbook.ActiveSheet.Index).UsedRange.Rows.Count
+        
+        counter = counter + 1
+        
+        If start_date.Offset(counter, 0).Value <> vbNullString Then
+            
+            If counter = 0 Then
+            
+                start.Offset(counter - 1, ender).Value = "Query Rows"
+                
+            End If
+            
+            main_string = "(AdmDate.DateValue >='" & CStr(start_date.Offset(counter, 0).Value) & "' and " & "pt.primarymrn = '" & "0" & CStr(start_mrn.Offset(counter, 0).Value) & "') or"
+            
+            start.Offset(counter, ender).Value = main_string
+            
+        End If
+        
+    Loop
+        
+        
+    
+End Function
+
+
+Sub find_last_column(ender As Integer)
+
+    Dim start_col As Range
+    
+    Dim counter As Integer
+    
+    Set start_col = ActiveWorkbook.Worksheets(ActiveWorkbook.ActiveSheet.Index).Range("a5")
+
+    counter = -1
+    
+    Do While counter < 20
+    
+        counter = counter + 1
+        
+        If start_col.Offset(0, counter).Value = vbNullString Then
+        
+            ender = counter
+            
+            Exit Do
+            
+        End If
+        
+    Loop
+    
+End Sub
+
+Sub find_adm_date(start_date As Range)
+
+    Dim start_col As Range
+    
+    Dim counter As Integer
+    
+    Set start_col = ActiveWorkbook.Worksheets(ActiveWorkbook.ActiveSheet.Index).Range("a5")
+
+    counter = -1
+    
+    Do While counter < 20
+    
+        counter = counter + 1
+        
+        If InStr(1, LCase(start_col.Offset(0, counter).Value), "adm_date") Then
+        
+            Set start_date = start_col.Offset(1, counter)
+            
+            Exit Do
+            
+        End If
+        
+    Loop
+    
+End Sub
+Sub find_mrn(start_mrn As Range)
+
+    Dim start_col As Range
+    
+    Dim counter As Integer
+    
+    Set start_col = ActiveWorkbook.Worksheets(ActiveWorkbook.ActiveSheet.Index).Range("a5")
+
+    counter = -1
+    
+    Do While counter < 20
+    
+        counter = counter + 1
+        
+        If InStr(1, LCase(start_col.Offset(0, counter).Value), "mrn") Then
+        
+            Set start_mrn = start_col.Offset(1, counter)
+            
+            Exit Do
+            
+        End If
+        
+    Loop
+    
+End Sub
+
+
